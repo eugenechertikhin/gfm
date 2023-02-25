@@ -1,0 +1,15 @@
+# directories
+.idea
+
+# backup files
+*.bak
+*~
+
+# temp files and directories
+tmp
+*.tmp
+*.core
+
+# Executables
+gfm
+*.exe
