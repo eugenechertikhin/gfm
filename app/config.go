@@ -91,25 +91,8 @@ func saveConfig() error {
 
 func defaultConfig(filename, home string) {
 	cfg = Cfg{
-		ConfigFile: filename,
-		Panels: []*Panel{
-			{
-				Type:    FileList,
-				Mode:    Full,
-				Sort:    Name,
-				Path:    home,
-				Columns: 2,
-				Params:  []SortType{Name, Size, Time, Perm},
-			},
-			{
-				Type:    FileList,
-				Mode:    Full,
-				Sort:    Name,
-				Path:    home,
-				Columns: 2,
-				Params:  []SortType{Name, Size, Time, Perm},
-			},
-		},
+		ConfigFile:      filename,
+		Panels:          []*Panel{NewPanel(home), NewPanel(home)},
 		ViewInternal:    true,
 		EditInternal:    true,
 		ShowDot:         true,

@@ -48,7 +48,7 @@ func (w *Window) Draw() {
 }
 
 func (w *Window) Print(x, y int, str string, style tcell.Style) int {
-	var cnt = 0
+	var cnt = x
 	for i, c := range str {
 		screen.SetContent(x+w.x+i, y+w.y, c, nil, style)
 		cnt++
@@ -84,6 +84,16 @@ func (w *Window) RightTop() (x, y int) {
 	return w.x + w.Width - 1, w.y
 }
 
+func (w *Window) GetWidth() int {
+	return w.Width - w.x - 2
+}
+
+func (w *Window) GetHeight() int {
+	if cfg.ShowStatus {
+		return w.Height - w.y - 2 - 2
+	}
+	return w.Height - w.y - 2
+}
 func (w *Window) Clear(style tcell.Style) {
 	xend, yend := w.RightBottom()
 	for y := w.y; y < yend+1; y++ {

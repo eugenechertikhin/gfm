@@ -48,37 +48,16 @@ func Run() error {
 		decH++
 	}
 
-	cmd := ""
 	panelCurrent := 0
-	panelCount := len(cfg.Panels)
-	panelModeLong := false
+	panel := cfg.Panels[panelCurrent]
 	width, height := screen.Size()
 
-	// check for mode Long
-	for _, p := range cfg.Panels {
-		if p.Mode == Long {
-			p.DrawPanel(0, 0+incY, width, height-decH, true)
-			panelModeLong = true
-		}
-	}
+	// show menubar
 
-	// print panels
-	if !panelModeLong {
-		for n, p := range cfg.Panels {
-			active := n == 0
-			p.DrawPanel(n*(width/panelCount), 0+incY, width/panelCount, height-decH, active)
-		}
-	}
-
-	var cmdWin *Window
-	var cmdStart, cmdPos int
-	if cfg.ShowCommand {
-		cmdWin = NewWindow(0, height-decH+1, width, 1)
-		cmdWin.Clear(cmdline)
-		cmdPos = cmdWin.Print(0, 0, user.Username+" "+cfg.Panels[panelCurrent].Path+sign, cmdline)
-		cmdStart = cmdPos
-		cmd = ""
-	}
+	command := NewCmd(width, height-decH+1, user.HomeDir, cmdline)
+	command.Init(panel.Path, sign)
+	ShowKeybar(width, height-1, mainMenu, menu)
+	showPanels(incY, decH, panelCurrent)
 
 	for {
 		// Poll event
@@ -89,38 +68,130 @@ func Run() error {
 		case *tcell.EventResize:
 			screen.Sync()
 		case *tcell.EventKey:
-			if ev.Key() == tcell.KeyCtrlC {
+			if ev.Key() == tcell.KeyF10 {
 				Finish()
 				os.Exit(0)
+			}
+
+			if ev.Key() == tcell.KeyTab {
+				if panel.Mode != Long {
+					panel.PrintPath(false)
+					panelCurrent++
+					if panelCurrent == len(cfg.Panels) {
+						panelCurrent = 0
+					}
+					panel = cfg.Panels[panelCurrent]
+					panel.PrintPath(true)
+					command.Init(panel.Path, sign)
+				}
 			}
 
 			if ev.Key() == tcell.KeyCtrlL {
 				screen.Sync()
 			}
 
-			if ev.Key() == tcell.KeyTab {
-				cfg.Panels[panelCurrent].PrintPath(false)
-				if panelCurrent < len(cfg.Panels)-1 {
-					panelCurrent++
-				} else {
-					panelCurrent = 0
-				}
-				cfg.Panels[panelCurrent].PrintPath(true)
+			if ev.Key() == tcell.KeyCtrlO {
+				screen.Fini()
+				command.Pause()
+
+				screen, _ = tcell.NewScreen()
+				screen.Init()
+				ShowKeybar(width, height-1, mainMenu, menu)
+				command.Init(panel.Path, sign)
+				showPanels(incY, decH, panelCurrent)
+			}
+
+			if ev.Key() == tcell.KeyCtrlU {
+				cfg.Panels[0].Path, cfg.Panels[1].Path = cfg.Panels[1].Path, cfg.Panels[0].Path
+				showPanels(incY, decH, panelCurrent)
+			}
+
+			if ev.Key() == tcell.KeyUp {
+				panel.MoveUp()
+			}
+
+			if ev.Key() == tcell.KeyDown {
+				panel.MoveDown()
+			}
+
+			if ev.Key() == tcell.KeyLeft {
+				panel.MoveLeft()
+			}
+
+			if ev.Key() == tcell.KeyRight {
+				panel.MoveRight()
+			}
+
+			if ev.Key() == tcell.KeyPgUp {
+				panel.PageUp()
+			}
+
+			if ev.Key() == tcell.KeyPgDn {
+				panel.PageDown()
 			}
 
 			if ev.Key() == tcell.KeyBackspace2 {
-				if cmdPos > cmdStart {
-					cmdWin.Printr(cmdPos-1, 0, ' ', cmdline)
-					cmdPos--
-				}
+				command.Backspace()
 			}
 
 			if ev.Key() == tcell.KeyRune {
-				cmd += string(ev.Rune())
-				cmdPos = cmdWin.Printr(cmdPos, 0, ev.Rune(), cmdline)
+				command.Update(ev.Rune())
+			}
+			if ev.Key() == tcell.KeyCtrlW {
+				command.BackWord()
+			}
+
+			if ev.Key() == tcell.KeyEnter {
+				if len(command.Cmd) > 0 {
+					if newDir := command.ChangeDirectory(command.Cmd, panel.Path); newDir != "" {
+						panel.Path = newDir
+						panel.ReDrawPanel(true)
+						panel.ShowFiles(true)
+					} else {
+						command.RunCommand(panel.Path)
+
+						screen, _ = tcell.NewScreen()
+						screen.Init()
+						command.Init(panel.Path, sign)
+						ShowKeybar(width, height-1, mainMenu, menu)
+						showPanels(incY, decH, panelCurrent)
+					}
+				} else {
+					// get current file and run it or change to this directory
+					if panel.GetCursorFile().IsDir {
+						panel.Path = command.ChangeDirectory("cd "+panel.GetCursorFile().Name, panel.Path)
+						panel.ReDrawPanel(true)
+						panel.ClearCursor()
+						panel.ShowFiles(true)
+					}
+				}
 			}
 		}
-		screen.ShowCursor(cmdPos, height-decH+1)
+		screen.ShowCursor(command.Position(), height-decH+1)
 		screen.Show()
+	}
+}
+
+func showPanels(incY, decH, current int) {
+	panelModeLong := false
+	panelCount := len(cfg.Panels)
+	width, height := screen.Size()
+
+	for _, p := range cfg.Panels {
+		if p.Mode == Long {
+			p.DrawPanel(0, 0+incY, width, height-decH, true)
+			p.ShowFiles(true)
+
+			panelModeLong = true
+		}
+	}
+
+	// print panels
+	if !panelModeLong {
+		for n, p := range cfg.Panels {
+			active := n == current
+			p.DrawPanel(n*(width/panelCount), 0+incY, width/panelCount, height-decH, active)
+			p.ShowFiles(active)
+		}
 	}
 }
