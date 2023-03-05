@@ -29,6 +29,9 @@ type Cfg struct {
 	ConfirmDelete   bool     `json:"confirm_delete"`
 	ConfirmOverride bool     `json:"confirm_override"`
 	ConfirmExecute  bool     `json:"confirm_execute"`
+	ConfirmPause    bool     `json:"confirm_pause"`
+	EnableMouse     bool     `json:"enable_mouse"`
+	EnablePaste     bool     `json:"enable_paste"`
 }
 
 func loadHistory(filename string) error {

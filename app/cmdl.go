@@ -75,29 +75,6 @@ func (c *Cmd) BackWord() {
 	}
 }
 
-func (c *Cmd) Execute(path string) {
-	args := strings.Split(c.Cmd, " ")
-	command, err := exec.LookPath(args[0])
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	cmd := &exec.Cmd{
-		Path:   command,
-		Args:   args,
-		Dir:    path,
-		Stdin:  os.Stdin,
-		Stdout: os.Stdout,
-		Stderr: os.Stderr,
-	}
-	if err := cmd.Run(); err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	c.Cmd = ""
-}
-
 func (c *Cmd) Pause() {
 	fmt.Print("\nPress enter to continue")
 	bufio.NewReader(os.Stdin).ReadRune()
@@ -156,12 +133,28 @@ func (c *Cmd) ChangeDirectory(command, path string) string {
 	return ""
 }
 
-func (c *Cmd) RunCommand(path string) {
+func (c *Cmd) RunCommand(cmdline, path string) {
 	screen.Fini()
 
-	c.Execute(path)
-
-	if cfg.ConfirmExecute {
-		c.Pause()
+	args := strings.Split(cmdline, " ")
+	cmd := &exec.Cmd{
+		Path:   args[0],
+		Args:   args,
+		Dir:    path,
+		Stdin:  os.Stdin,
+		Stdout: os.Stdout,
+		Stderr: os.Stderr,
+	}
+	if err := cmd.Run(); err != nil {
+		command, err := exec.LookPath(args[0])
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		cmd.Path = command
+		if err := cmd.Run(); err != nil {
+			fmt.Println(err)
+			return
+		}
 	}
 }

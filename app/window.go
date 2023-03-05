@@ -45,11 +45,29 @@ func (w *Window) Draw() {
 	screen.SetContent(w.x, yend, llCorner, nil, defaultAttr)
 	screen.SetContent(xend, w.y, urCorner, nil, defaultAttr)
 	screen.SetContent(xend, yend, lrCorner, nil, defaultAttr)
+
+	if cfg.ShowStatus && cfg.ShowBorders {
+		for xx := w.x + 1; xx <= w.x+w.Width-2; xx++ {
+			screen.SetContent(xx, w.Height-2, hLine, nil, defaultAttr)
+		}
+	}
+}
+
+func (w *Window) DrawSeparator(x, starty int) {
+	if cfg.ShowBorders {
+		minus := 0
+		if cfg.ShowStatus {
+			minus += 2
+		}
+		for y := starty; y < w.Height-minus; y++ {
+			screen.SetContent(w.x+x, y, vLine, nil, defaultAttr)
+		}
+	}
 }
 
 func (w *Window) Print(x, y int, str string, style tcell.Style) int {
 	var cnt = x
-	for i, c := range str {
+	for i, c := range []rune(str) {
 		screen.SetContent(x+w.x+i, y+w.y, c, nil, style)
 		cnt++
 	}

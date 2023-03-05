@@ -13,6 +13,7 @@ var (
 
 func main() {
 	flag.Parse()
+	
 	app.Init(*ascii, *scheme)
 	defer app.Finish()
 

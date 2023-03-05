@@ -67,12 +67,20 @@ func Init(ascii bool, scheme string) error {
 		// load from cfg
 	}
 
+	return Start()
+}
+
+func Start() error {
 	if s, err := tcell.NewScreen(); err == nil {
 		if err := s.Init(); err != nil {
 			return err
 		}
-		s.EnableMouse()
-		s.EnablePaste()
+		if cfg.EnableMouse {
+			s.EnableMouse()
+		}
+		if cfg.EnablePaste {
+			s.EnablePaste()
+		}
 		screen = s
 		return nil
 	} else {

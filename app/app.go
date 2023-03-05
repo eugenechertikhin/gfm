@@ -65,10 +65,64 @@ func Run() error {
 
 		// Process event
 		switch ev := ev.(type) {
-		case *tcell.EventResize:
-			screen.Sync()
 		case *tcell.EventKey:
+			if ev.Key() == tcell.KeyF1 {
+			}
+
+			if ev.Key() == tcell.KeyF2 {
+			}
+
+			if ev.Key() == tcell.KeyF3 {
+				if cfg.ViewInternal {
+					//
+				} else {
+					panel.prevDir = panel.GetCursorFile().Name
+					command.RunCommand(cfg.ViewCmd+" "+panel.GetCursorFile().Name, panel.Path)
+
+					if err := Start(); err != nil {
+						return err
+					}
+					command.Init(panel.Path, sign)
+					ShowKeybar(width, height-1, mainMenu, menu)
+					showPanels(incY, decH, panelCurrent)
+				}
+			}
+
+			if ev.Key() == tcell.KeyF4 {
+				if cfg.EditInternal {
+					//
+				} else {
+					panel.prevDir = panel.GetCursorFile().Name
+					command.RunCommand(cfg.EditCmd+" "+panel.GetCursorFile().Name, panel.Path)
+
+					if err := Start(); err != nil {
+						return err
+					}
+					command.Init(panel.Path, sign)
+					ShowKeybar(width, height-1, mainMenu, menu)
+					showPanels(incY, decH, panelCurrent)
+				}
+			}
+
+			if ev.Key() == tcell.KeyF5 {
+			}
+
+			if ev.Key() == tcell.KeyF6 {
+			}
+
+			if ev.Key() == tcell.KeyF7 {
+			}
+
+			if ev.Key() == tcell.KeyF8 {
+			}
+
+			if ev.Key() == tcell.KeyF9 {
+			}
+
 			if ev.Key() == tcell.KeyF10 {
+				if cfg.ConfirmExit {
+				}
+
 				Finish()
 				os.Exit(0)
 			}
@@ -141,18 +195,29 @@ func Run() error {
 				command.BackWord()
 			}
 
+			if ev.Key() == tcell.KeyCtrlS {
+
+			}
+
 			if ev.Key() == tcell.KeyEnter {
 				if len(command.Cmd) > 0 {
 					// some command entered in command line
 					if newDir := command.ChangeDirectory(command.Cmd, panel.Path); newDir != "" {
-						panel.SavePrevDir()
+						panel.SaveCurrentDir()
 						panel.Path = newDir
 						panel.ReDrawPanel(true)
-					} else { // execute entered command
-						command.RunCommand(panel.Path)
+					} else {
+						// execute entered command
+						panel.prevDir = panel.GetCursorFile().Name
+						command.RunCommand(command.Cmd, panel.Path)
+						command.Cmd = ""
+						if cfg.ConfirmPause {
+							command.Pause()
+						}
 
-						screen, _ = tcell.NewScreen()
-						screen.Init()
+						if err := Start(); err != nil {
+							return err
+						}
 						command.Init(panel.Path, sign)
 						ShowKeybar(width, height-1, mainMenu, menu)
 						showPanels(incY, decH, panelCurrent)
@@ -160,9 +225,23 @@ func Run() error {
 				} else {
 					// get current file and run it or change to this directory
 					if panel.GetCursorFile().IsDir {
-						panel.SavePrevDir()
+						panel.SaveCurrentDir()
 						panel.Path = command.ChangeDirectory("cd "+panel.GetCursorFile().Name, panel.Path)
 						panel.ReDrawPanel(true)
+					} else {
+						// execute file under cursor
+						panel.prevDir = panel.GetCursorFile().Name
+						command.RunCommand(panel.GetCursorFile().Name, panel.Path)
+						if cfg.ConfirmPause {
+							command.Pause()
+						}
+
+						if err := Start(); err != nil {
+							return err
+						}
+						command.Init(panel.Path, sign)
+						ShowKeybar(width, height-1, mainMenu, menu)
+						showPanels(incY, decH, panelCurrent)
 					}
 				}
 			}

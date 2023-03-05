@@ -82,20 +82,26 @@ func (p *Panel) ReDrawPanel(active bool) {
 		// зкште columns Name
 		switch p.Mode {
 		case Long:
-			// Permission(10), Owner(10?), Group(10?), Size(10), Time(10), Name(-)
-			p.Window.Print(2, 1, "Permission", marked)
-			p.Window.Print(2+11, 1, "Owner", marked)
-			p.Window.Print(2+21, 1, "Group", marked)
-			p.Window.Print(2+31, 1, "Size", marked)
-			p.Window.Print(2+41, 1, "Time", marked)
-			p.Window.Print(2+51, 1, "Name", marked)
+			p.Window.Print(2, 1, "Name", marked)
+			p.Window.DrawSeparator(p.Window.Width-53, 2)
+			p.Window.Print(p.Window.Width-52, 1, "Perm", marked)
+			p.Window.DrawSeparator(p.Window.Width-43, 2)
+			p.Window.Print(p.Window.Width-42, 1, "Owner", marked)
+			p.Window.DrawSeparator(p.Window.Width-33, 2)
+			p.Window.Print(p.Window.Width-32, 1, "Group", marked)
+			p.Window.DrawSeparator(p.Window.Width-23, 2)
+			p.Window.Print(p.Window.Width-22, 1, "Size", marked)
+			p.Window.DrawSeparator(p.Window.Width-12, 2)
+			p.Window.Print(p.Window.Width-11, 1, "Time", marked)
 			p.cur = 0
 			p.Columns = 1
-			p.curLen = p.Window.Width - 51
+			p.curLen = p.Window.Width - 54
 			p.ShowFiles(0)
 		case Full:
 			p.Window.Print(2, 1, "Name", marked)
+			p.Window.DrawSeparator(p.Window.Width-23, 2)
 			p.Window.Print(p.Window.Width-22, 1, "Size", marked)
+			p.Window.DrawSeparator(p.Window.Width-12, 2)
 			p.Window.Print(p.Window.Width-11, 1, "Time", marked)
 			p.cur = 0
 			p.Columns = 1
@@ -106,6 +112,9 @@ func (p *Panel) ReDrawPanel(active bool) {
 			p.curLen = p.Window.Width/p.Columns - 1
 			for i := 0; i < p.Columns; i++ {
 				p.Window.Print(p.Window.Width/p.Columns*i+2, 1, "Name", marked)
+				if i > 0 {
+					p.Window.DrawSeparator(p.Window.Width/p.Columns*i, 2)
+				}
 			}
 			p.ShowFiles(0)
 		case Custom:
@@ -113,13 +122,6 @@ func (p *Panel) ReDrawPanel(active bool) {
 		}
 
 		p.PrintPath(active)
-
-		// show status borders
-		if cfg.ShowStatus && cfg.ShowBorders {
-			for xx := p.Window.x + 1; xx <= p.Window.x+p.Window.Width-2; xx++ {
-				screen.SetContent(xx, p.Window.Height-2, hLine, nil, defaultAttr)
-			}
-		}
 	case Tree:
 		// todo
 	case QuickView:
@@ -171,8 +173,11 @@ func (p *Panel) ShowFiles(start int) {
 				p.prevDir = ""
 			}
 
-			n := f.Symbol + f.Name
-			name := fmt.Sprintf("%-*s", p.curLen, n)
+			n := []rune(f.Symbol + f.Name)
+			if len(n) > p.curLen {
+				n = append(n[:p.curLen-2], '~')
+			}
+			name := fmt.Sprintf("%-*s", p.curLen, string(n))
 			p.Window.Print(x, i-start+2, name, defaultAttr)
 		}
 
@@ -213,11 +218,14 @@ func (p *Panel) GetCursorFile() File {
 }
 
 func (p *Panel) GetCursorLabel(i int) string {
-	n := p.Files[i].Symbol + p.Files[i].Name
-	return fmt.Sprintf("%-*s", p.curLen, n)
+	n := []rune(p.Files[i].Symbol + p.Files[i].Name)
+	if len(n) > p.curLen {
+		n = append(n[:p.curLen-2], '~')
+	}
+	return fmt.Sprintf("%-*s", p.curLen, string(n))
 }
 
-func (p *Panel) SavePrevDir() {
+func (p *Panel) SaveCurrentDir() {
 	if strings.HasSuffix(p.Path, "/") {
 		p.Path = p.Path[:len(p.Path)-1]
 	}
