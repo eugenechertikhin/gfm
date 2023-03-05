@@ -25,10 +25,8 @@ func NewCmd(width, height int, home string, style tcell.Style) *Cmd {
 		return &Cmd{}
 	}
 
-	win := NewWindow(0, height, width, 1)
-
 	return &Cmd{
-		win:             win,
+		win:             NewWindow(0, height, width, 1),
 		style:           style,
 		startPosition:   0,
 		currentPosition: 0,
@@ -38,9 +36,6 @@ func NewCmd(width, height int, home string, style tcell.Style) *Cmd {
 }
 
 func (c *Cmd) Init(path, sign string) {
-	if c.win == nil {
-		return
-	}
 	c.path = path
 	c.sign = sign
 	p := path + sign
@@ -116,9 +111,14 @@ func (c *Cmd) Clear() {
 	c.Cmd = ""
 }
 
-func (c *Cmd) ChangeDirectory(d, path string) string {
-	if strings.HasPrefix(d, "cd ") {
-		arg := strings.Split(d, "cd ")
+/*
+command - command line
+path - current directory
+@return new direcory or "" if change directory is not required
+*/
+func (c *Cmd) ChangeDirectory(command, path string) string {
+	if strings.HasPrefix(command, "cd ") {
+		arg := strings.Split(command, "cd ")
 
 		c.Clear()
 		cd := strings.Trim(arg[1], " ")
@@ -132,7 +132,7 @@ func (c *Cmd) ChangeDirectory(d, path string) string {
 		}
 		if cd == ".." {
 			index := strings.LastIndex(path, "/")
-			if index == 0 {
+			if index == 0 || index == -1 {
 				c.Init("/", c.sign)
 				return "/"
 			}

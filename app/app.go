@@ -52,7 +52,7 @@ func Run() error {
 	panel := cfg.Panels[panelCurrent]
 	width, height := screen.Size()
 
-	// show menubar
+	// show menubar (todo)
 
 	command := NewCmd(width, height-decH+1, user.HomeDir, cmdline)
 	command.Init(panel.Path, sign)
@@ -76,18 +76,21 @@ func Run() error {
 			if ev.Key() == tcell.KeyTab {
 				if panel.Mode != Long {
 					panel.PrintPath(false)
+					panel.Cursor(false)
 					panelCurrent++
 					if panelCurrent == len(cfg.Panels) {
 						panelCurrent = 0
 					}
 					panel = cfg.Panels[panelCurrent]
 					panel.PrintPath(true)
+					panel.Cursor(true)
 					command.Init(panel.Path, sign)
 				}
 			}
 
 			if ev.Key() == tcell.KeyCtrlL {
 				screen.Sync()
+				screen.Show()
 			}
 
 			if ev.Key() == tcell.KeyCtrlO {
@@ -134,20 +137,18 @@ func Run() error {
 				command.Backspace()
 			}
 
-			if ev.Key() == tcell.KeyRune {
-				command.Update(ev.Rune())
-			}
 			if ev.Key() == tcell.KeyCtrlW {
 				command.BackWord()
 			}
 
 			if ev.Key() == tcell.KeyEnter {
 				if len(command.Cmd) > 0 {
+					// some command entered in command line
 					if newDir := command.ChangeDirectory(command.Cmd, panel.Path); newDir != "" {
+						panel.SavePrevDir()
 						panel.Path = newDir
 						panel.ReDrawPanel(true)
-						panel.ShowFiles(true)
-					} else {
+					} else { // execute entered command
 						command.RunCommand(panel.Path)
 
 						screen, _ = tcell.NewScreen()
@@ -159,12 +160,15 @@ func Run() error {
 				} else {
 					// get current file and run it or change to this directory
 					if panel.GetCursorFile().IsDir {
+						panel.SavePrevDir()
 						panel.Path = command.ChangeDirectory("cd "+panel.GetCursorFile().Name, panel.Path)
 						panel.ReDrawPanel(true)
-						panel.ClearCursor()
-						panel.ShowFiles(true)
 					}
 				}
+			}
+
+			if ev.Key() == tcell.KeyRune {
+				command.Update(ev.Rune())
 			}
 		}
 		screen.ShowCursor(command.Position(), height-decH+1)
@@ -180,7 +184,6 @@ func showPanels(incY, decH, current int) {
 	for _, p := range cfg.Panels {
 		if p.Mode == Long {
 			p.DrawPanel(0, 0+incY, width, height-decH, true)
-			p.ShowFiles(true)
 
 			panelModeLong = true
 		}
@@ -191,7 +194,6 @@ func showPanels(incY, decH, current int) {
 		for n, p := range cfg.Panels {
 			active := n == current
 			p.DrawPanel(n*(width/panelCount), 0+incY, width/panelCount, height-decH, active)
-			p.ShowFiles(active)
 		}
 	}
 }

@@ -1,9 +1,9 @@
 package main
 
 import (
-	"fc/app"
 	"flag"
 	"fmt"
+	"gfm/app"
 )
 
 var (
