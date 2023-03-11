@@ -66,6 +66,7 @@ func Run() error {
 	command.Init(panel.Path, sign)
 	ShowKeybar(width, height-1, mainMenu, menu)
 	showPanels(incY, decH, panelCurrent)
+	keys = MainKeys()
 
 	for {
 		e := screen.PollEvent()
@@ -135,17 +136,17 @@ func ShowTerminal() {
 }
 
 func Enter() {
-	if len(command.Cmd) > 0 {
+	if len(command.Prompt) > 0 {
 		// some command entered in command line
-		if newDir := command.ChangeDirectory(command.Cmd, panel.Path); newDir != "" {
+		if newDir := command.ChangeDirectory(command.Prompt, panel.Path); newDir != "" {
 			panel.SaveCurrentDir()
 			panel.Path = newDir
 			panel.ReDrawPanel(true)
 		} else {
 			// execute entered command
 			panel.prevDir = panel.GetCursorFile().Name
-			command.RunCommand(command.Cmd, panel.Path)
-			command.Cmd = ""
+			command.RunCommand(command.Prompt, panel.Path)
+			command.Prompt = ""
 			if cfg.ConfirmPause {
 				command.Pause()
 			}

@@ -2,61 +2,104 @@ package app
 
 import (
 	"github.com/gdamore/tcell/v2"
+	"strings"
 )
 
 var (
-	keys = MainKeys()
+	keys map[tcell.Key]func()
 	key  string
 )
 
 func MainKeys() map[tcell.Key]func() {
-	var keys = map[tcell.Key]func(){}
+	var k = map[tcell.Key]func(){}
 
 	// functional keys
-	keys[tcell.KeyF1] = func() { Help() }
-	keys[tcell.KeyF2] = func() { Menu() }
-	keys[tcell.KeyF3] = func() { View() }
-	keys[tcell.KeyF4] = func() { Edit() }
-	keys[tcell.KeyF5] = func() { Copy() }
-	keys[tcell.KeyF6] = func() { Move() }
-	keys[tcell.KeyF7] = func() { MakeDir() }
-	keys[tcell.KeyF8] = func() { Delete() }
-	keys[tcell.KeyF9] = func() { TopMenuBar() }
-	keys[tcell.KeyF10] = func() { Exit() }
+	k[tcell.KeyF1] = func() { Help() }
+	k[tcell.KeyF2] = func() { Menu() }
+	k[tcell.KeyF3] = func() { View() }
+	k[tcell.KeyF4] = func() { Edit() }
+	k[tcell.KeyF5] = func() { Copy() }
+	k[tcell.KeyF6] = func() { Move() }
+	k[tcell.KeyF7] = func() { MakeDir() }
+	k[tcell.KeyF8] = func() { Delete() }
+	k[tcell.KeyF9] = func() { TopMenuBar() }
+	k[tcell.KeyF10] = func() { Exit() }
 
 	// cursor movement keys
-	keys[tcell.KeyTab] = func() { ChangePanel() }
-	keys[tcell.KeyUp] = func() { panel.MoveUp() }
-	keys[tcell.KeyDown] = func() { panel.MoveDown() }
-	keys[tcell.KeyLeft] = func() { panel.MoveLeft() }
-	keys[tcell.KeyRight] = func() { panel.MoveRight() }
-	keys[tcell.KeyHome] = func() { panel.PageHome() }
-	keys[tcell.KeyEnd] = func() { panel.PageEnd() }
-	keys[tcell.KeyPgUp] = func() { panel.PageUp() }
-	keys[tcell.KeyPgDn] = func() { panel.PageDown() }
+	k[tcell.KeyTab] = func() { ChangePanel() }
+	k[tcell.KeyUp] = func() { panel.MoveUp() }
+	k[tcell.KeyDown] = func() { panel.MoveDown() }
+	k[tcell.KeyLeft] = func() { panel.MoveLeft() }
+	k[tcell.KeyRight] = func() { panel.MoveRight() }
+	k[tcell.KeyHome] = func() { panel.PageHome() }
+	k[tcell.KeyEnd] = func() { panel.PageEnd() }
+	k[tcell.KeyPgUp] = func() { panel.PageUp() }
+	k[tcell.KeyPgDn] = func() { panel.PageDown() }
 
 	// ctrl-keys
-	keys[tcell.KeyCtrlW] = func() { command.BackWord() }
-	keys[tcell.KeyCtrlS] = func() {
-		// todo search
+	k[tcell.KeyCtrlW] = func() { command.BackWord() }
+	k[tcell.KeyCtrlS] = func() {
+		keys = SearchKeys()
+		command.Save()
+		command.Init("", "file search >")
 	}
-	keys[tcell.KeyCtrlT] = func() { panel.SelectFile() }
-	keys[tcell.KeyCtrlL] = func() {
+	k[tcell.KeyCtrlT] = func() { panel.SelectFile() }
+	k[tcell.KeyCtrlL] = func() {
 		screen.Sync()
 		screen.Show()
 	}
-	keys[tcell.KeyCtrlO] = func() { ShowTerminal() }
-	keys[tcell.KeyCtrlU] = func() {
+	k[tcell.KeyCtrlR] = func() {
+		panel.Files = GetDirectory(panel.Path)
+		panel.Selected = 0
+		panel.SelectedSize = 0
+		panel.ShowFiles(0)
+		panel.Cursor(true)
+	}
+	k[tcell.KeyCtrlO] = func() { ShowTerminal() }
+	k[tcell.KeyCtrlU] = func() {
 		cfg.Panels[0].Path, cfg.Panels[1].Path = cfg.Panels[1].Path, cfg.Panels[0].Path
 		showPanels(incY, decH, panelCurrent)
 	}
 
 	// command line keys
-	keys[tcell.KeyBackspace2] = func() { command.Backspace() }
-	keys[tcell.KeyEnter] = func() { Enter() }
+	k[tcell.KeyBackspace2] = func() { command.Backspace() }
+	k[tcell.KeyEnter] = func() { Enter() }
 
-	keys[tcell.KeyNUL] = func() {
+	k[tcell.KeyNUL] = func() {
 		command.Update(key)
 	}
-	return keys
+
+	return k
+}
+
+func SearchKeys() map[tcell.Key]func() {
+	var k = map[tcell.Key]func(){}
+
+	k[tcell.KeyEscape] = func() {
+		keys = MainKeys()
+		command.Restore()
+		command.Init(panel.Path, sign)
+	}
+	k[tcell.KeyBackspace2] = func() { command.Backspace() }
+	k[tcell.KeyEnter] = func() {
+		keys = MainKeys()
+		command.Restore()
+		command.Init(panel.Path, sign)
+		Enter()
+	}
+
+	k[tcell.KeyNUL] = func() {
+		s := command.Prompt + key
+		for i, f := range panel.Files {
+			if strings.HasPrefix(f.Name, s) {
+				panel.Cursor(false)
+				command.Update(key)
+				panel.cur = i
+				panel.Cursor(true)
+				break
+			}
+		}
+	}
+
+	return k
 }

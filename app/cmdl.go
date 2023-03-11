@@ -17,7 +17,8 @@ type Cmd struct {
 	home            string
 	path            string
 	sign            string
-	Cmd             string
+	old             string
+	Prompt          string
 }
 
 func NewCmd(width, height int, home string, style tcell.Style) *Cmd {
@@ -31,21 +32,29 @@ func NewCmd(width, height int, home string, style tcell.Style) *Cmd {
 		startPosition:   0,
 		currentPosition: 0,
 		home:            home,
-		Cmd:             "",
+		Prompt:          "",
 	}
+}
+
+func (c *Cmd) Save() {
+	c.old = c.Prompt
+	c.Prompt = ""
+}
+
+func (c *Cmd) Restore() {
+	c.Prompt = c.old
 }
 
 func (c *Cmd) Init(path, sign string) {
 	c.path = path
 	c.sign = sign
-	p := path + sign
 	c.win.Clear(c.style)
-	c.startPosition = c.win.Print(0, 0, p, c.style)
-	c.currentPosition = c.win.Print(c.startPosition, 0, c.Cmd, c.style)
+	c.startPosition = c.win.Print(0, 0, path+sign, c.style)
+	c.currentPosition = c.win.Print(c.startPosition, 0, c.Prompt, c.style)
 }
 
 func (c *Cmd) Update(r string) {
-	c.Cmd += r
+	c.Prompt += r
 	c.currentPosition = c.win.Print(c.currentPosition, 0, r, c.style)
 }
 
@@ -56,19 +65,19 @@ func (c *Cmd) Position() int {
 func (c *Cmd) Backspace() {
 	if c.currentPosition > c.startPosition {
 		c.win.Printr(c.currentPosition-1, 0, ' ', cmdline)
-		c.Cmd = c.Cmd[:len(c.Cmd)-1]
+		c.Prompt = c.Prompt[:len(c.Prompt)-1]
 		c.currentPosition--
 	}
 }
 
 func (c *Cmd) BackWord() {
-	index := strings.LastIndex(c.Cmd, " ")
+	index := strings.LastIndex(c.Prompt, " ")
 	if index == -1 {
 		c.Clear()
 		return
 	}
-	c.Cmd = c.Cmd[:index]
-	c.currentPosition = c.startPosition + len(c.Cmd)
+	c.Prompt = c.Prompt[:index]
+	c.currentPosition = c.startPosition + len(c.Prompt)
 
 	for i := 0; i <= index; i++ {
 		c.win.Printr(c.currentPosition+i, 0, ' ', cmdline)
@@ -85,7 +94,7 @@ func (c *Cmd) Clear() {
 		c.win.Printr(i, 0, ' ', cmdline)
 	}
 	c.currentPosition = c.startPosition
-	c.Cmd = ""
+	c.Prompt = ""
 }
 
 /*

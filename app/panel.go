@@ -341,13 +341,12 @@ func (p *Panel) SelectFile() {
 			}
 		}
 	}
-	for xx := p.Window.x + 1; xx <= p.Window.x+p.Window.Width-2; xx++ {
+	for xx := p.Window.x + 1; xx <= p.Window.x+p.Window.Width-15; xx++ {
 		p.Window.Printr(xx, p.Window.Height-1, hLine, defaultAttr)
 	}
 	if p.Selected != 0 {
 		p.Window.Print(p.Window.x+2, p.Window.Height-1, fmt.Sprintf(" selected %d bytes in %d files ", p.SelectedSize, p.Selected), defaultAttr)
 	}
-	p.ShowFreeTotal()
 	p.MoveDown()
 }
 
