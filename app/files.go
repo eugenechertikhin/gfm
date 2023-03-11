@@ -18,6 +18,7 @@ type File struct {
 	Permission os.FileMode
 	Size       int64
 	ModTime    time.Time
+	Selected   bool
 }
 
 func (f *File) String() string {

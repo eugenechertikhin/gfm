@@ -44,9 +44,9 @@ func (c *Cmd) Init(path, sign string) {
 	c.currentPosition = c.win.Print(c.startPosition, 0, c.Cmd, c.style)
 }
 
-func (c *Cmd) Update(r rune) {
-	c.Cmd += string(r)
-	c.currentPosition = c.win.Printr(c.currentPosition, 0, r, c.style)
+func (c *Cmd) Update(r string) {
+	c.Cmd += r
+	c.currentPosition = c.win.Print(c.currentPosition, 0, r, c.style)
 }
 
 func (c *Cmd) Position() int {
@@ -89,8 +89,8 @@ func (c *Cmd) Clear() {
 }
 
 /*
-command - command line
-path - current directory
+@param command - command line
+@param path - current directory
 @return new direcory or "" if change directory is not required
 */
 func (c *Cmd) ChangeDirectory(command, path string) string {

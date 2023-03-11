@@ -3,18 +3,19 @@ package app
 import "github.com/gdamore/tcell/v2"
 
 var (
-	screen      tcell.Screen
-	defaultAttr tcell.Style
-	cmdline     tcell.Style
-	highlight   tcell.Style
-	title       tcell.Style
-	symlink     tcell.Style
-	symlinkDir  tcell.Style
-	directory   tcell.Style
-	executable  tcell.Style
-	marked      tcell.Style
-	menu        tcell.Style
-	progress    tcell.Style
+	screen          tcell.Screen
+	defaultAttr     tcell.Style
+	cmdline         tcell.Style
+	highlight       tcell.Style
+	title           tcell.Style
+	symlink         tcell.Style
+	symlinkDir      tcell.Style
+	directory       tcell.Style
+	executable      tcell.Style
+	marked          tcell.Style
+	markedHighlight tcell.Style
+	menu            tcell.Style
+	progress        tcell.Style
 
 	vLine    = tcell.RuneVLine
 	hLine    = tcell.RuneHLine
@@ -48,6 +49,7 @@ func Init(ascii bool, scheme string) error {
 		directory = d.Foreground(tcell.ColorAqua).Background(bg).Bold(true)
 		executable = d.Foreground(tcell.ColorLime).Background(bg).Bold(true)
 		marked = d.Foreground(tcell.ColorYellow).Background(bg).Bold(true)
+		markedHighlight = d.Foreground(tcell.ColorYellow).Background(tcell.ColorAqua).Bold(true)
 		menu = d.Foreground(tcell.ColorBlack).Background(tcell.ColorAqua)
 		progress = d.Foreground(tcell.ColorWhite).Background(tcell.ColorAqua)
 	case "bw":
@@ -61,6 +63,7 @@ func Init(ascii bool, scheme string) error {
 		directory = d.Foreground(tcell.ColorAqua).Background(bg).Bold(true)
 		executable = d.Foreground(tcell.ColorLime).Background(bg).Bold(true)
 		marked = d.Foreground(tcell.ColorYellow).Background(bg).Bold(true)
+		markedHighlight = d.Foreground(tcell.ColorYellow).Background(tcell.ColorGrey).Bold(true)
 		menu = d.Foreground(tcell.ColorWhite).Background(tcell.ColorBlack)
 		progress = d.Foreground(tcell.ColorWhite).Background(tcell.ColorNavy)
 	case "custom":
