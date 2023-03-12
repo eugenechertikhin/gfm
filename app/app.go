@@ -1,3 +1,20 @@
+/*
+GoLang File Manager
+gfm  Copyright (C) 2023  Eugene Chertikhin <e.chertikhin@gmail.com>
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
 package app
 
 import (
@@ -7,7 +24,8 @@ import (
 )
 
 const (
-	configDirectory = "/gfm/"
+	ConfigDirectory = "/gfm/"
+	LicenseFile     = "LICENSE"
 	configFile      = "config"
 	historyFile     = "history"
 )
@@ -22,7 +40,7 @@ var (
 	incY, decH    int
 )
 
-func Run() error {
+func Run(dir string) error {
 	user, err := user.Current()
 	if err != nil {
 		return err
@@ -32,17 +50,14 @@ func Run() error {
 	if user.Uid == "0" {
 		sign = " # "
 	}
-	if userDirectory, err := os.UserConfigDir(); err != nil {
+
+	if err := os.MkdirAll(dir+ConfigDirectory, os.ModePerm); err != nil {
 		return err
-	} else {
-		if err := os.MkdirAll(userDirectory+configDirectory, os.ModePerm); err != nil {
-			return err
-		}
-		if err := loadConfig(userDirectory + configDirectory + configFile); err != nil {
-			defaultConfig(userDirectory+configDirectory+configFile, user.HomeDir)
-		}
-		loadHistory(userDirectory + configDirectory + historyFile)
 	}
+	if err := loadConfig(dir + ConfigDirectory + configFile); err != nil {
+		defaultConfig(dir+ConfigDirectory+configFile, user.HomeDir)
+	}
+	loadHistory(dir + ConfigDirectory + historyFile)
 
 	incY, decH = 0, 0
 	if cfg.ShowMenuBar {
@@ -152,7 +167,7 @@ func Enter() {
 			}
 
 			if err := Start(); err != nil {
-				//return err
+				// todo return err
 			}
 			command.Init(panel.Path, sign)
 			ShowKeybar(width, height-1, mainMenu, menu)
@@ -165,19 +180,21 @@ func Enter() {
 			panel.Path = command.ChangeDirectory("cd "+panel.GetCursorFile().Name, panel.Path)
 			panel.ReDrawPanel(true)
 		} else {
-			// execute file under cursor
-			panel.prevDir = panel.GetCursorFile().Name
-			command.RunCommand(panel.GetCursorFile().Name, panel.Path)
-			if cfg.ConfirmPause {
-				command.Pause()
-			}
+			// execute file under cursor (if executable)
+			if panel.GetCursorFile().Executable() {
+				panel.prevDir = panel.GetCursorFile().Name
+				command.RunCommand(panel.GetCursorFile().Name, panel.Path)
+				if cfg.ConfirmPause {
+					command.Pause()
+				}
 
-			if err := Start(); err != nil {
-				//return err
+				if err := Start(); err != nil {
+					// todo return err
+				}
+				command.Init(panel.Path, sign)
+				ShowKeybar(width, height-1, mainMenu, menu)
+				showPanels(incY, decH, panelCurrent)
 			}
-			command.Init(panel.Path, sign)
-			ShowKeybar(width, height-1, mainMenu, menu)
-			showPanels(incY, decH, panelCurrent)
 		}
 	}
 }

@@ -1,3 +1,20 @@
+/*
+GoLang File Manager
+gfm  Copyright (C) 2023  Eugene Chertikhin <e.chertikhin@gmail.com>
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
 package app
 
 import (
@@ -17,6 +34,7 @@ type Cfg struct {
 	ViewCmd         string   `json:"view_cmd"`
 	EditInternal    bool     `json:"edit_internal"`
 	EditCmd         string   `json:"edit_cmd"`
+	EditCfg         EditCfg  `json:"edit_cfg"`
 	ShowDot         bool     `json:"show_dot"`
 	ShowBorders     bool     `json:"show_borders"`
 	ShowStatus      bool     `json:"show_status"`
@@ -32,6 +50,9 @@ type Cfg struct {
 	ConfirmPause    bool     `json:"confirm_pause"`
 	EnableMouse     bool     `json:"enable_mouse"`
 	EnablePaste     bool     `json:"enable_paste"`
+}
+
+type EditCfg struct {
 }
 
 func loadHistory(filename string) error {

@@ -1,3 +1,20 @@
+/*
+GoLang File Manager
+gfm  Copyright (C) 2023  Eugene Chertikhin <e.chertikhin@gmail.com>
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
 package app
 
 import (
@@ -7,6 +24,9 @@ import (
 
 var (
 	mainMenu = []string{"Help", "Menu", "View", "Edit", "Copy", "Move", "MkDir", "Remove", "Config", "Quit"}
+	viewMenu = []string{"Help", "Wrap", "Quit", "Hex", "Goto", "", "Find", "", "Option", "Quit"}
+	hexMenu  = []string{"Help", "", "Quit", "Text", "Goto", "", "Find", "", "Option", "Quit"}
+	editMenu = []string{"Help", "Save", "Mark", "Replace", "Copy", "Move", "Find", "Delete", "Option", "Quit"}
 )
 
 func ShowKeybar(width, height int, menu []string, style tcell.Style) {
