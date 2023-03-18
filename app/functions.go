@@ -17,7 +17,11 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 package app
 
-import "os"
+import (
+	"fmt"
+	"github.com/gdamore/tcell/v2"
+	"os"
+)
 
 func Help() {
 
@@ -71,18 +75,105 @@ func MakeDir() {
 
 }
 
-func Delete() {
-
-}
-
 func TopMenuBar() {
 
 }
 
+func Delete() {
+	if cfg.ConfirmDelete {
+		var msg string
+		l := 35
+		if panel.Selected != 0 {
+			msg = fmt.Sprintf("Are you sure to delete %d files?", panel.Selected)
+		} else {
+			name := panel.Files[panel.cur].Name
+			if len(name) > 30 {
+				name = name[:27] + "..."
+			}
+			msg = fmt.Sprintf("Are you sure to delete file '%s'?", name)
+			l += len(name)
+		}
+		win = NewWindow((width-l)/2, (height-4)/2, l, 5, []string{"Yes", "No"})
+		win.Draw(window)
+		win.Print(2, 1, msg, window)
+
+		keys = SelectButtons()
+		keys[tcell.KeyEnter] = func() {
+			if win.Keys[win.key] == "Yes" {
+				deleteFiles()
+			}
+		}
+	} else {
+		deleteFiles()
+	}
+}
+
+func deleteFiles() {
+	// todo show process of deletion?
+	win.Close()
+	if panel.Selected != 0 {
+		for _, f := range panel.Files {
+			if f.Selected {
+				if err := os.Remove(panel.Path + "/" + f.Name); err != nil {
+					RescanDirectory()
+					ErrorWindow("Error " + err.Error())
+					return
+				}
+			}
+		}
+		keys = MainKeys()
+	} else {
+		if err := os.Remove(panel.Path + "/" + panel.Files[panel.cur].Name); err != nil {
+			ErrorWindow("Error " + err.Error())
+			return
+		}
+		keys = MainKeys()
+	}
+	RescanDirectory()
+}
+
 func Exit() {
 	if cfg.ConfirmExit {
-	}
+		win = NewWindow((width-30)/2, (height-4)/2, 30, 5, []string{"Yes", "No"})
+		win.Draw(window)
+		win.Print(2, 1, "Are you sure to leave gfm?", window)
 
-	Finish()
-	os.Exit(0)
+		keys = SelectButtons()
+		keys[tcell.KeyEnter] = func() {
+			if win.Keys[win.key] == "Yes" {
+				Finish()
+				os.Exit(0)
+			} else {
+				win.Close()
+				keys = MainKeys()
+			}
+		}
+	} else {
+		Finish()
+		os.Exit(0)
+	}
+}
+
+func RescanDirectory() {
+	panel.Files = GetDirectory(panel.Path)
+	panel.Selected = 0
+	panel.SelectedSize = 0
+	panel.ShowFiles(0)
+	if panel.cur >= len(panel.Files) {
+		panel.cur = len(panel.Files) - 1
+	}
+	panel.Cursor(true)
+}
+
+func ErrorWindow(message string) {
+	l := len(message) + 4
+	win = NewWindow((width-l)/2, (height-4)/2, l, 5, []string{"Ok"})
+	win.Draw(alert)
+	win.Print(2, 1, message, alert)
+
+	keys = SelectButtons()
+	keys[tcell.KeyEnter] = func() {
+		win.Close()
+		keys = MainKeys()
+	}
 }

@@ -25,10 +25,8 @@ var (
 	cmdline         tcell.Style
 	highlight       tcell.Style
 	title           tcell.Style
-	symlink         tcell.Style
-	symlinkDir      tcell.Style
-	directory       tcell.Style
-	executable      tcell.Style
+	window          tcell.Style
+	alert           tcell.Style
 	marked          tcell.Style
 	markedHighlight tcell.Style
 	menu            tcell.Style
@@ -57,14 +55,12 @@ func Init(ascii bool, scheme string) error {
 	switch scheme {
 	case "colour":
 		bg := tcell.ColorNavy
-		defaultAttr = d.Foreground(tcell.ColorWhite).Background(bg) //
+		defaultAttr = d.Foreground(tcell.ColorWhite).Background(bg)
 		cmdline = d.Foreground(tcell.ColorWhite).Background(tcell.ColorBlack)
 		highlight = d.Foreground(tcell.ColorBlack).Background(tcell.ColorAqua).Bold(true)
 		title = d.Foreground(tcell.ColorWhite).Background(bg)
-		symlink = d.Foreground(tcell.ColorFuchsia).Background(bg)
-		symlinkDir = d.Foreground(tcell.ColorFuchsia).Background(bg).Bold(true)
-		directory = d.Foreground(tcell.ColorAqua).Background(bg).Bold(true)
-		executable = d.Foreground(tcell.ColorLime).Background(bg).Bold(true)
+		window = d.Foreground(tcell.ColorWhite).Background(tcell.ColorGrey).Bold(true)
+		alert = d.Foreground(tcell.ColorWhite).Background(tcell.ColorRed).Bold(true)
 		marked = d.Foreground(tcell.ColorYellow).Background(bg).Bold(true)
 		markedHighlight = d.Foreground(tcell.ColorYellow).Background(tcell.ColorAqua).Bold(true)
 		menu = d.Foreground(tcell.ColorBlack).Background(tcell.ColorAqua)
@@ -75,10 +71,8 @@ func Init(ascii bool, scheme string) error {
 		cmdline = d.Foreground(tcell.ColorWhite).Background(bg)
 		highlight = d.Foreground(tcell.ColorWhite).Background(tcell.ColorNavy).Bold(true)
 		title = d.Foreground(tcell.ColorWhite).Background(bg)
-		symlink = d.Foreground(tcell.ColorFuchsia).Background(bg)
-		symlinkDir = d.Foreground(tcell.ColorFuchsia).Background(bg).Bold(true)
-		directory = d.Foreground(tcell.ColorAqua).Background(bg).Bold(true)
-		executable = d.Foreground(tcell.ColorLime).Background(bg).Bold(true)
+		window = d.Foreground(tcell.ColorWhite).Background(bg).Bold(true)
+		alert = d.Foreground(tcell.ColorWhite).Background(bg).Bold(true)
 		marked = d.Foreground(tcell.ColorYellow).Background(bg).Bold(true)
 		markedHighlight = d.Foreground(tcell.ColorYellow).Background(tcell.ColorGrey).Bold(true)
 		menu = d.Foreground(tcell.ColorWhite).Background(tcell.ColorBlack)

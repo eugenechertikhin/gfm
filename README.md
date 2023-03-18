@@ -21,9 +21,9 @@ Many changes and idea still in implementation. Nearest plan below:
 - implement viewer and editor
 - implement top menubar
 - implement configuration screen
-- help
-- copy, move, delete, create dir 
-- rewrite starting programms from panels
+- help with all shortcuts
+- copy, move, create dir 
+- rewrite 'run file' from panels and execute command line
 - menu
 
 ## Licensing

@@ -38,6 +38,7 @@ var (
 	command       *Cmd
 	width, height int
 	incY, decH    int
+	win           *Window
 )
 
 func Run(dir string) error {
@@ -59,27 +60,29 @@ func Run(dir string) error {
 	}
 	loadHistory(dir + ConfigDirectory + historyFile)
 
-	incY, decH = 0, 0
-	if cfg.ShowMenuBar {
-		incY++
-		decH++
-	}
-	if cfg.ShowKeyBar {
-		decH++
-	}
-	if cfg.ShowCommand {
-		decH++
-	}
-
 	panelCurrent = 0
 	panel = cfg.Panels[panelCurrent]
 	width, height = screen.Size()
 
-	// show menubar (todo)
+	incY, decH = 0, 0
+	if cfg.ShowMenuBar {
+		incY++
+		decH++
 
-	command = NewCmd(width, height-decH+1, user.HomeDir, cmdline)
-	command.Init(panel.Path, sign)
-	ShowKeybar(width, height-1, mainMenu, menu)
+		// show menubar (todo)
+	}
+	if cfg.ShowKeyBar {
+		decH++
+
+		ShowKeybar(width, height-1, mainMenu, menu)
+	}
+	if cfg.ShowCommand {
+		decH++
+
+		command = NewCmd(width, height-decH+1, user.HomeDir, cmdline)
+		command.Init(panel.Path, sign)
+	}
+
 	showPanels(incY, decH, panelCurrent)
 	keys = MainKeys()
 
@@ -90,7 +93,7 @@ func Run(dir string) error {
 			if v := keys[ev.Key()]; v != nil {
 				v()
 			} else {
-				if ev.Key() == tcell.KeyRune {
+				if ev.Key() == tcell.KeyRune && keys[tcell.KeyNUL] != nil {
 					key = string(ev.Rune())
 					keys[tcell.KeyNUL]()
 				}

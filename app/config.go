@@ -46,7 +46,6 @@ type Cfg struct {
 	ConfirmExit     bool     `json:"confirm_exit"`
 	ConfirmDelete   bool     `json:"confirm_delete"`
 	ConfirmOverride bool     `json:"confirm_override"`
-	ConfirmExecute  bool     `json:"confirm_execute"`
 	ConfirmPause    bool     `json:"confirm_pause"`
 	EnableMouse     bool     `json:"enable_mouse"`
 	EnablePaste     bool     `json:"enable_paste"`
@@ -130,7 +129,6 @@ func defaultConfig(filename, home string) {
 		ConfirmExit:     true,
 		ConfirmDelete:   true,
 		ConfirmOverride: true,
-		ConfirmExecute:  true,
 	}
 	saveConfig()
 }

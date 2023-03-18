@@ -66,11 +66,7 @@ func MainKeys() map[tcell.Key]func() {
 		screen.Show()
 	}
 	k[tcell.KeyCtrlR] = func() {
-		panel.Files = GetDirectory(panel.Path)
-		panel.Selected = 0
-		panel.SelectedSize = 0
-		panel.ShowFiles(0)
-		panel.Cursor(true)
+		RescanDirectory()
 	}
 	k[tcell.KeyCtrlO] = func() { ShowTerminal() }
 	k[tcell.KeyCtrlU] = func() {
@@ -116,6 +112,44 @@ func SearchKeys() map[tcell.Key]func() {
 				break
 			}
 		}
+	}
+
+	return k
+}
+
+func SelectButtons() map[tcell.Key]func() {
+	var k = map[tcell.Key]func(){}
+
+	k[tcell.KeyEscape] = func() {
+		win.Close()
+		keys = MainKeys()
+	}
+	k[tcell.KeyLeft] = func() {
+		win.ShowKey(win.key, window)
+		if win.key == 0 {
+			win.key = len(win.Keys) - 1
+		} else {
+			win.key--
+		}
+		win.ShowKey(win.key, highlight)
+	}
+	k[tcell.KeyRight] = func() {
+		win.ShowKey(win.key, window)
+		if win.key == len(win.Keys)-1 {
+			win.key = 0
+		} else {
+			win.key++
+		}
+		win.ShowKey(win.key, highlight)
+	}
+	k[tcell.KeyTab] = func() {
+		win.ShowKey(win.key, window)
+		if win.key == len(win.Keys)-1 {
+			win.key = 0
+		} else {
+			win.key++
+		}
+		win.ShowKey(win.key, highlight)
 	}
 
 	return k

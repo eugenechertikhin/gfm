@@ -31,7 +31,7 @@ var (
 
 func ShowKeybar(width, height int, menu []string, style tcell.Style) {
 	if cfg.ShowKeyBar {
-		win := NewWindow(0, height, width, 1)
+		win := NewWindow(0, height, width, 1, nil) // todo send menu items as keys?
 
 		cnt := 0
 		lenght := 0

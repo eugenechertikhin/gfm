@@ -24,9 +24,14 @@ type WindowProto interface {
 	Close()
 
 	LeftTop() (x, y int)
-	RightBottom() (x, y int)
 	LeftBottom() (x, y int)
+	RightBottom() (x, y int)
 	RightTop() (x, y int)
+}
+
+type cell struct {
+	ch    rune
+	style tcell.Style
 }
 
 type Window struct {
@@ -35,39 +40,67 @@ type Window struct {
 	y      int
 	Width  int
 	Height int
+	save   [][]cell
+	key    int
+	Keys   []string
 }
 
-func NewWindow(x, y, width, height int) *Window {
-	return &Window{
+func NewWindow(x, y, width, height int, keys []string) *Window {
+	w := &Window{
 		x:      x,
 		y:      y,
 		Width:  width,
 		Height: height,
+		save:   make([][]cell, height),
 	}
+
+	// save content under window
+	for yy := 0; yy < height; yy++ {
+		w.save[yy] = make([]cell, width)
+		for xx := 0; xx < width; xx++ {
+			primary, _, style, _ := screen.GetContent(xx+w.x, yy+w.y)
+			w.save[yy][xx] = cell{primary, style}
+		}
+	}
+
+	w.key = 0
+	w.Keys = keys
+
+	return w
 }
 
-func (w *Window) Draw() {
-	w.Clear(defaultAttr)
+func (w *Window) Draw(style tcell.Style) {
+	w.Clear(style)
 
 	xend, yend := w.RightBottom()
 	for x := w.x + 1; x <= xend; x++ {
-		screen.SetContent(x, w.y, hLine, nil, defaultAttr)  // top side
-		screen.SetContent(x, yend, hLine, nil, defaultAttr) // bottom side
+		screen.SetContent(x, w.y, hLine, nil, style)  // top side
+		screen.SetContent(x, yend, hLine, nil, style) // bottom side
 	}
 	for y := w.y + 1; y < yend; y++ {
-		screen.SetContent(w.x, y, vLine, nil, defaultAttr)  // left side
-		screen.SetContent(xend, y, vLine, nil, defaultAttr) // right side
+		screen.SetContent(w.x, y, vLine, nil, style)  // left side
+		screen.SetContent(xend, y, vLine, nil, style) // right side
 	}
-	screen.SetContent(w.x, w.y, ulCorner, nil, defaultAttr)
-	screen.SetContent(w.x, yend, llCorner, nil, defaultAttr)
-	screen.SetContent(xend, w.y, urCorner, nil, defaultAttr)
-	screen.SetContent(xend, yend, lrCorner, nil, defaultAttr)
+	screen.SetContent(w.x, w.y, ulCorner, nil, style)
+	screen.SetContent(w.x, yend, llCorner, nil, style)
+	screen.SetContent(xend, w.y, urCorner, nil, style)
+	screen.SetContent(xend, yend, lrCorner, nil, style)
 
-	if cfg.ShowStatus && cfg.ShowBorders {
-		for xx := w.x + 1; xx <= w.x+w.Width-2; xx++ {
-			screen.SetContent(xx, w.Height-2, hLine, nil, defaultAttr)
+	if w.Keys != nil {
+		x := w.Width / 2
+		for i, k := range w.Keys {
+			if i == w.key {
+				win.Print((x-len(k))/len(w.Keys)+(i*x), win.Height-2, k, highlight)
+			} else {
+				win.Print((x-len(k))/len(w.Keys)+(i*x), win.Height-2, k, style)
+			}
 		}
 	}
+}
+
+func (w *Window) ShowKey(i int, style tcell.Style) {
+	x := w.Width / 2
+	win.Print((x-len(w.Keys[i]))/len(w.Keys)+(i*x), win.Height-2, w.Keys[i], style)
 }
 
 func (w *Window) DrawSeparator(x, starty int) {
@@ -96,7 +129,13 @@ func (w *Window) Printr(x, y int, r rune, style tcell.Style) int {
 	return x + 1
 }
 
+// restore content under window
 func (w *Window) Close() {
+	for yy := 0; yy < w.Height; yy++ {
+		for xx := 0; xx < w.Width; xx++ {
+			screen.SetContent(xx+w.x, yy+w.y, w.save[yy][xx].ch, nil, w.save[yy][xx].style)
+		}
+	}
 }
 
 // LeftTop returns left top coordinates of the window.
@@ -129,6 +168,7 @@ func (w *Window) GetHeight() int {
 	}
 	return w.Height - w.y - 2
 }
+
 func (w *Window) Clear(style tcell.Style) {
 	xend, yend := w.RightBottom()
 	for y := w.y; y < yend+1; y++ {

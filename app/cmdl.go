@@ -44,7 +44,7 @@ func NewCmd(width, height int, home string, style tcell.Style) *Cmd {
 	}
 
 	return &Cmd{
-		win:             NewWindow(0, height, width, 1),
+		win:             NewWindow(0, height, width, 1, nil),
 		style:           style,
 		startPosition:   0,
 		currentPosition: 0,

@@ -86,14 +86,20 @@ func (p *Panel) PrintPath(active bool) {
 }
 
 func (p *Panel) DrawPanel(x, y, width, height int, active bool) {
-	p.Window = NewWindow(x, y, width, height)
+	p.Window = NewWindow(x, y, width, height, nil)
 	p.ReDrawPanel(active)
 	p.ShowStatus()
 }
 
 func (p *Panel) ReDrawPanel(active bool) {
 	if cfg.ShowBorders {
-		p.Window.Draw()
+		p.Window.Draw(defaultAttr)
+
+		if cfg.ShowStatus && cfg.ShowBorders {
+			for xx := p.Window.x + 1; xx <= p.Window.x+p.Window.Width-2; xx++ {
+				screen.SetContent(xx, p.Window.Height-2, hLine, nil, defaultAttr)
+			}
+		}
 	} else {
 		p.Window.Clear(defaultAttr)
 	}
