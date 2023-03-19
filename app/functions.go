@@ -64,7 +64,27 @@ func Edit() {
 }
 
 func Copy() {
+	var from string
+	l := width / 3 * 2
+	from = "Copy directory '%s'"
+	from = "Copy file '%s'"
+	from = "Copy %d files"
+	win = NewWindow((width-l)/2, (height-8)/2, l, 8, []string{"Ok", "Cancel"})
+	win.Draw(window)
+	win.Print(2, 1, from, window)
+	win.Print(2, 2, fmt.Sprintf("%-*s", l-4, "123 "), highlight)
+	win.Print(2, 3, "to:", window)
+	win.Print(2, 4, fmt.Sprintf("%-*s", l-4, "/home "), highlight)
 
+	keys = InputAndConfirmKeys()
+	keys[tcell.KeyEnter] = func() {
+		if win.Keys[win.key] == "Ok" {
+			// createt dir
+		} else {
+			win.Close()
+			keys = MainKeys()
+		}
+	}
 }
 
 func Move() {
@@ -72,7 +92,21 @@ func Move() {
 }
 
 func MakeDir() {
+	l := width / 3 * 2
+	win = NewWindow((width-l)/2, (height-6)/2, l, 6, []string{"Ok", "Cancel"})
+	win.Draw(window)
+	win.Print(2, 1, "Create new directory:", window)
+	win.Print(2, 2, fmt.Sprintf("%-*s", l-4, " "), highlight)
 
+	keys = InputAndConfirmKeys()
+	keys[tcell.KeyEnter] = func() {
+		if win.Keys[win.key] == "Ok" {
+			// createt dir
+		} else {
+			win.Close()
+			keys = MainKeys()
+		}
+	}
 }
 
 func TopMenuBar() {
@@ -93,14 +127,17 @@ func Delete() {
 			msg = fmt.Sprintf("Are you sure to delete file '%s'?", name)
 			l += len(name)
 		}
-		win = NewWindow((width-l)/2, (height-4)/2, l, 5, []string{"Yes", "No"})
+		win = NewWindow((width-l)/2, (height-5)/2, l, 5, []string{"Yes", "No"})
 		win.Draw(window)
 		win.Print(2, 1, msg, window)
 
-		keys = SelectButtons()
+		keys = SelectKeys()
 		keys[tcell.KeyEnter] = func() {
 			if win.Keys[win.key] == "Yes" {
 				deleteFiles()
+			} else {
+				win.Close()
+				keys = MainKeys()
 			}
 		}
 	} else {
@@ -134,11 +171,11 @@ func deleteFiles() {
 
 func Exit() {
 	if cfg.ConfirmExit {
-		win = NewWindow((width-30)/2, (height-4)/2, 30, 5, []string{"Yes", "No"})
+		win = NewWindow((width-30)/2, (height-5)/2, 30, 5, []string{"Yes", "No"})
 		win.Draw(window)
 		win.Print(2, 1, "Are you sure to leave gfm?", window)
 
-		keys = SelectButtons()
+		keys = SelectKeys()
 		keys[tcell.KeyEnter] = func() {
 			if win.Keys[win.key] == "Yes" {
 				Finish()
@@ -167,11 +204,11 @@ func RescanDirectory() {
 
 func ErrorWindow(message string) {
 	l := len(message) + 4
-	win = NewWindow((width-l)/2, (height-4)/2, l, 5, []string{"Ok"})
+	win = NewWindow((width-l)/2, (height-5)/2, l, 5, []string{"Ok"})
 	win.Draw(alert)
 	win.Print(2, 1, message, alert)
 
-	keys = SelectButtons()
+	keys = SelectKeys()
 	keys[tcell.KeyEnter] = func() {
 		win.Close()
 		keys = MainKeys()

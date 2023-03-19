@@ -117,7 +117,7 @@ func SearchKeys() map[tcell.Key]func() {
 	return k
 }
 
-func SelectButtons() map[tcell.Key]func() {
+func SelectKeys() map[tcell.Key]func() {
 	var k = map[tcell.Key]func(){}
 
 	k[tcell.KeyEscape] = func() {
@@ -142,6 +142,32 @@ func SelectButtons() map[tcell.Key]func() {
 		}
 		win.ShowKey(win.key, highlight)
 	}
+	k[tcell.KeyTab] = func() {
+		win.ShowKey(win.key, window)
+		if win.key == len(win.Keys)-1 {
+			win.key = 0
+		} else {
+			win.key++
+		}
+		win.ShowKey(win.key, highlight)
+	}
+
+	return k
+}
+
+func InputAndConfirmKeys() map[tcell.Key]func() {
+	var k = map[tcell.Key]func(){}
+
+	k[tcell.KeyEscape] = func() {
+		win.Close()
+		keys = MainKeys()
+	}
+	k[tcell.KeyLeft] = func() {
+	}
+	k[tcell.KeyRight] = func() {
+	}
+	k[tcell.KeyUp] = func() {}
+	k[tcell.KeyDown] = func() {}
 	k[tcell.KeyTab] = func() {
 		win.ShowKey(win.key, window)
 		if win.key == len(win.Keys)-1 {
