@@ -43,7 +43,7 @@ func MainKeys() map[tcell.Key]func() {
 	k[tcell.KeyF10] = func() { Exit() }
 
 	// cursor movement keys
-	k[tcell.KeyTab] = func() { ChangePanel() }
+	k[tcell.KeyTab] = func() { changePanel() }
 	k[tcell.KeyUp] = func() { panel.MoveUp() }
 	k[tcell.KeyDown] = func() { panel.MoveDown() }
 	k[tcell.KeyLeft] = func() { panel.MoveLeft() }
@@ -58,7 +58,7 @@ func MainKeys() map[tcell.Key]func() {
 	k[tcell.KeyCtrlS] = func() {
 		keys = SearchKeys()
 		command.Save()
-		command.Init("", "file search >")
+		command.Init("file search >")
 	}
 	k[tcell.KeyCtrlT] = func() { panel.SelectFile() }
 	k[tcell.KeyCtrlL] = func() {
@@ -68,14 +68,16 @@ func MainKeys() map[tcell.Key]func() {
 	k[tcell.KeyCtrlR] = func() {
 		RescanDirectory()
 	}
-	k[tcell.KeyCtrlO] = func() { ShowTerminal() }
+	k[tcell.KeyCtrlO] = func() { showTerminal() }
 	k[tcell.KeyCtrlU] = func() {
 		cfg.Panels[0].Path, cfg.Panels[1].Path = cfg.Panels[1].Path, cfg.Panels[0].Path
 		showPanels(incY, decH, panelCurrent)
 	}
+	k[tcell.KeyCtrlBackslash] = func() { searchMenu() }
+	k[tcell.KeyCtrlRightSq] = func() { command.Update(panel.GetCursorFile().Name + " ") }
 
 	// command line keys
-	k[tcell.KeyBackspace2] = func() { command.Backspace() }
+	k[tcell.KeyBackspace2] = func() { command.Backspace(cmdline) }
 	k[tcell.KeyEnter] = func() { Enter() }
 
 	k[tcell.KeyNUL] = func() {
@@ -91,13 +93,13 @@ func SearchKeys() map[tcell.Key]func() {
 	k[tcell.KeyEscape] = func() {
 		keys = MainKeys()
 		command.Restore()
-		command.Init(panel.Path, sign)
+		command.Init(panel.Path + sign)
 	}
-	k[tcell.KeyBackspace2] = func() { command.Backspace() }
+	k[tcell.KeyBackspace2] = func() { command.Backspace(cmdline) }
 	k[tcell.KeyEnter] = func() {
 		keys = MainKeys()
 		command.Restore()
-		command.Init(panel.Path, sign)
+		command.Init(panel.Path + sign)
 		Enter()
 	}
 
@@ -166,16 +168,19 @@ func InputAndConfirmKeys() map[tcell.Key]func() {
 	}
 	k[tcell.KeyRight] = func() {
 	}
-	k[tcell.KeyUp] = func() {}
-	k[tcell.KeyDown] = func() {}
+	k[tcell.KeyBackspace2] = func() { input.Backspace(highlight) }
 	k[tcell.KeyTab] = func() {
-		win.ShowKey(win.key, window)
+		if win.key != 0 {
+			win.ShowKey(win.key, window)
+		}
 		if win.key == len(win.Keys)-1 {
 			win.key = 0
 		} else {
 			win.key++
 		}
-		win.ShowKey(win.key, highlight)
+		if win.key != 0 {
+			win.ShowKey(win.key, highlight)
+		}
 	}
 
 	return k

@@ -20,11 +20,70 @@ package app
 import (
 	"fmt"
 	"github.com/gdamore/tcell/v2"
+	"io/fs"
 	"os"
 )
 
-func Help() {
+func Enter() {
+	if len(command.Prompt) > 0 {
+		// some command entered in command line
+		if newDir := ChangeDirectory(panel.Path, command.Prompt); newDir != "" {
+			// change directory
+			panel.SaveCurrentDir()
+			panel.Path = newDir
+			panel.ReDrawPanel(true)
+		} else {
+			// execute entered command
+			panel.prevDir = panel.GetCursorFile().Name
+			history.AppendHistory(command.Prompt) // save command in history
+			RunCommand(command.Prompt, panel.Path)
+			command.Prompt = ""
+			if cfg.ConfirmPause {
+				Pause()
+			}
 
+			if err := Start(); err != nil {
+				Finish()
+				fmt.Println(err)
+				os.Exit(-1)
+			}
+			command.Init(panel.Path + sign)
+			ShowKeybar(width, height-1, mainMenu, menu)
+			showPanels(incY, decH, panelCurrent)
+		}
+	} else {
+		// get current file and run it or change to this directory
+		if panel.GetCursorFile().IsDir {
+			// this is directory. change to it
+			panel.SaveCurrentDir()
+			panel.Path = ChangeDirectory(panel.Path, "cd "+panel.GetCursorFile().Name)
+			panel.ReDrawPanel(true)
+		} else {
+			// execute file under cursor (if executable)
+			if panel.GetCursorFile().Executable() {
+				panel.prevDir = panel.GetCursorFile().Name // save current cursor position
+				RunCommand("./"+panel.GetCursorFile().Name, panel.Path)
+				if cfg.ConfirmPause {
+					Pause()
+				}
+
+				if err := Start(); err != nil {
+					Finish()
+					fmt.Println(err)
+					os.Exit(-1)
+				}
+				command.Init(panel.Path + sign)
+				ShowKeybar(width, height-1, mainMenu, menu)
+				showPanels(incY, decH, panelCurrent)
+			}
+		}
+	}
+}
+
+func Help() {
+	win = NewWindow(2, 2, width-4, height-5, nil)
+	win.Draw(window)
+	keys = SelectKeys()
 }
 
 func Menu() {
@@ -36,14 +95,17 @@ func View() {
 		// use internal viewer
 	} else {
 		panel.prevDir = panel.GetCursorFile().Name
-		command.RunCommand(cfg.ViewCmd+" "+panel.GetCursorFile().Name, panel.Path)
+		RunCommand(cfg.ViewCmd+" "+panel.GetCursorFile().Name, panel.Path)
 
 		if err := Start(); err != nil {
-			// todo return err
+			Finish()
+			fmt.Println(err)
+			os.Exit(-1)
 		}
-		command.Init(panel.Path, sign)
-		ShowKeybar(width, height-1, mainMenu, menu)
 		showPanels(incY, decH, panelCurrent)
+		command.Init(panel.Path + sign)
+		ShowKeybar(width, height-1, mainMenu, menu)
+		ShowMenubar()
 	}
 }
 
@@ -52,12 +114,14 @@ func Edit() {
 		// use internal editor
 	} else {
 		panel.prevDir = panel.GetCursorFile().Name
-		command.RunCommand(cfg.EditCmd+" "+panel.GetCursorFile().Name, panel.Path)
+		RunCommand(cfg.EditCmd+" "+panel.GetCursorFile().Name, panel.Path)
 
 		if err := Start(); err != nil {
-			// todo return err
+			Finish()
+			fmt.Println(err)
+			os.Exit(-1)
 		}
-		command.Init(panel.Path, sign)
+		command.Init(panel.Path + sign)
 		ShowKeybar(width, height-1, mainMenu, menu)
 		showPanels(incY, decH, panelCurrent)
 	}
@@ -79,7 +143,7 @@ func Copy() {
 	keys = InputAndConfirmKeys()
 	keys[tcell.KeyEnter] = func() {
 		if win.Keys[win.key] == "Ok" {
-			// createt dir
+			// todo copy
 		} else {
 			win.Close()
 			keys = MainKeys()
@@ -92,19 +156,38 @@ func Move() {
 }
 
 func MakeDir() {
-	l := width / 3 * 2
-	win = NewWindow((width-l)/2, (height-6)/2, l, 6, []string{"Ok", "Cancel"})
+	l := width / 2
+	win = NewWindow((width-l)/2, (height-6)/2, l, 6, []string{"", "Ok", "Cancel"})
 	win.Draw(window)
 	win.Print(2, 1, "Create new directory:", window)
-	win.Print(2, 2, fmt.Sprintf("%-*s", l-4, " "), highlight)
+
+	input = NewPrompt((width-l)/2+2, (height-6)/2+2, width/2-4, "", highlight)
+	input.Init("")
 
 	keys = InputAndConfirmKeys()
 	keys[tcell.KeyEnter] = func() {
-		if win.Keys[win.key] == "Ok" {
-			// createt dir
+		if win.Keys[win.key] == "Ok" || win.Keys[win.key] == "" {
+			// create dir
+			if input.Prompt != "" {
+				if err := os.Mkdir(panel.Path+"/"+input.Prompt, fs.ModePerm); err != nil {
+					input = nil
+					win.Close()
+					ErrorWindow("Error "+err.Error(), []string{"Ok"})
+					return
+				}
+				RescanDirectory()
+			}
+			input = nil
+			win.Close()
+			keys = MainKeys()
 		} else {
 			win.Close()
 			keys = MainKeys()
+		}
+	}
+	keys[tcell.KeyNUL] = func() {
+		if win.key == 0 {
+			input.Update(key)
 		}
 	}
 }
@@ -116,17 +199,22 @@ func TopMenuBar() {
 func Delete() {
 	if cfg.ConfirmDelete {
 		var msg string
-		l := 35
+		var l int
+
 		if panel.Selected != 0 {
-			msg = fmt.Sprintf("Are you sure to delete %d files?", panel.Selected)
+			msg = fmt.Sprintf("Are you sure to delete %d files ?", panel.Selected)
 		} else {
 			name := panel.Files[panel.cur].Name
+			if name == ".." {
+				return
+			}
 			if len(name) > 30 {
 				name = name[:27] + "..."
 			}
-			msg = fmt.Sprintf("Are you sure to delete file '%s'?", name)
-			l += len(name)
+			msg = fmt.Sprintf("Are you sure to delete file '%s' ?", name)
 		}
+
+		l += len(msg) + 4
 		win = NewWindow((width-l)/2, (height-5)/2, l, 5, []string{"Yes", "No"})
 		win.Draw(window)
 		win.Print(2, 1, msg, window)
@@ -134,39 +222,88 @@ func Delete() {
 		keys = SelectKeys()
 		keys[tcell.KeyEnter] = func() {
 			if win.Keys[win.key] == "Yes" {
-				deleteFiles()
-			} else {
-				win.Close()
-				keys = MainKeys()
+				ask = true
+				if err := deleteFiles(); err != nil {
+					ErrorWindow("Error "+err.Error(), []string{"OK"})
+				}
+				RescanDirectory()
 			}
+			win.Close()
+			keys = MainKeys()
 		}
 	} else {
-		deleteFiles()
+		ask = false
+		if err := deleteFiles(); err != nil {
+			ErrorWindow("Error "+err.Error(), []string{"OK"})
+		}
+		RescanDirectory()
 	}
 }
 
-func deleteFiles() {
+var ask bool = true
+
+func deleteFiles() error {
 	// todo show process of deletion?
 	win.Close()
 	if panel.Selected != 0 {
+		// many files are selected
+		var p string
+		if panel.Path == "/" {
+			p = "/"
+		} else {
+			p = panel.Path + "/"
+		}
+
 		for _, f := range panel.Files {
 			if f.Selected {
-				if err := os.Remove(panel.Path + "/" + f.Name); err != nil {
-					RescanDirectory()
-					ErrorWindow("Error " + err.Error())
-					return
+				if err := removeFile(p, f); err != nil {
+					return err
 				}
 			}
 		}
-		keys = MainKeys()
+
 	} else {
-		if err := os.Remove(panel.Path + "/" + panel.Files[panel.cur].Name); err != nil {
-			ErrorWindow("Error " + err.Error())
-			return
+		// only one file or directory should be deleted
+		var p string
+		if panel.Path == "/" {
+			p = "/"
+		} else {
+			p = panel.Path + "/"
 		}
-		keys = MainKeys()
+
+		err := removeFile(p, panel.Files[panel.cur])
+
+		return err
 	}
-	RescanDirectory()
+
+	keys = MainKeys()
+	return nil
+}
+
+func removeFile(path string, f File) error {
+	if f.IsDir {
+		// check is empty?
+		d := ReadDir(path + "/" + f.Name)
+		if ask && len(d) > 1 {
+			//ask = false // if == all
+		}
+		for _, v := range d {
+			if v.Name != ".." {
+				if err := removeFile(path+"/"+f.Name, v); err != nil {
+					return err
+				}
+			}
+		}
+		if err := os.Remove(path + "/" + f.Name); err != nil {
+			return err
+		}
+	} else {
+		if err := os.Remove(path + "/" + f.Name); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func Exit() {
@@ -202,9 +339,9 @@ func RescanDirectory() {
 	panel.Cursor(true)
 }
 
-func ErrorWindow(message string) {
+func ErrorWindow(message string, choice []string) {
 	l := len(message) + 4
-	win = NewWindow((width-l)/2, (height-5)/2, l, 5, []string{"Ok"})
+	win = NewWindow((width-l)/2, (height-5)/2, l, 5, choice)
 	win.Draw(alert)
 	win.Print(2, 1, message, alert)
 

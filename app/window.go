@@ -42,6 +42,7 @@ type Window struct {
 	Height int
 	save   [][]cell
 	key    int
+	noKey  int
 	Keys   []string
 }
 
@@ -89,10 +90,14 @@ func (w *Window) Draw(style tcell.Style) {
 	if w.Keys != nil {
 		x := w.Width / 2
 		for i, k := range w.Keys {
+			if k == "" {
+				w.noKey++
+				continue
+			}
 			if i == w.key {
-				win.Print((x-len(k))/len(w.Keys)+(i*x), win.Height-2, k, highlight)
+				win.Print((x-len(k))/len(w.Keys)-w.noKey+((i-w.noKey)*x), win.Height-2, k, highlight)
 			} else {
-				win.Print((x-len(k))/len(w.Keys)+(i*x), win.Height-2, k, style)
+				win.Print((x-len(k))/len(w.Keys)-w.noKey+((i-w.noKey)*x), win.Height-2, k, style)
 			}
 		}
 	}
@@ -100,7 +105,7 @@ func (w *Window) Draw(style tcell.Style) {
 
 func (w *Window) ShowKey(i int, style tcell.Style) {
 	x := w.Width / 2
-	win.Print((x-len(w.Keys[i]))/len(w.Keys)+(i*x), win.Height-2, w.Keys[i], style)
+	win.Print((x-len(w.Keys[i]))/len(w.Keys)-w.noKey+((i-w.noKey)*x), win.Height-2, w.Keys[i], style)
 }
 
 func (w *Window) DrawSeparator(x, starty int) {
@@ -115,6 +120,7 @@ func (w *Window) DrawSeparator(x, starty int) {
 	}
 }
 
+/* Print string in selcted coordinates */
 func (w *Window) Print(x, y int, str string, style tcell.Style) int {
 	var cnt = x
 	for i, c := range []rune(str) {
@@ -124,6 +130,7 @@ func (w *Window) Print(x, y int, str string, style tcell.Style) int {
 	return cnt
 }
 
+/* Print rune in selected coordinates */
 func (w *Window) Printr(x, y int, r rune, style tcell.Style) int {
 	screen.SetContent(x+w.x, y+w.y, r, nil, style)
 	return x + 1
@@ -158,10 +165,12 @@ func (w *Window) RightTop() (x, y int) {
 	return w.x + w.Width - 1, w.y
 }
 
+/* Return window width */
 func (w *Window) GetWidth() int {
 	return w.Width - w.x - 2
 }
 
+/* Return window height */
 func (w *Window) GetHeight() int {
 	if cfg.ShowStatus {
 		return w.Height - w.y - 2 - 2
@@ -169,6 +178,7 @@ func (w *Window) GetHeight() int {
 	return w.Height - w.y - 2
 }
 
+/* Clear screen content with @style */
 func (w *Window) Clear(style tcell.Style) {
 	xend, yend := w.RightBottom()
 	for y := w.y; y < yend+1; y++ {

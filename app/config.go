@@ -18,7 +18,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 package app
 
 import (
-	"bufio"
 	"bytes"
 	"encoding/json"
 	"io"
@@ -27,8 +26,6 @@ import (
 
 type Cfg struct {
 	ConfigFile      string   `json:"-"`
-	HistoryFile     string   `json:"-"`
-	History         []string `json:"-"`
 	Panels          []*Panel `json:"panels"`
 	ViewInternal    bool     `json:"view_internal"`
 	ViewCmd         string   `json:"view_cmd"`
@@ -52,25 +49,7 @@ type Cfg struct {
 }
 
 type EditCfg struct {
-}
-
-func loadHistory(filename string) error {
-	file, err := os.Open(filename)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		cfg.History = append(cfg.History, scanner.Text())
-	}
-
-	if err := scanner.Err(); err != nil {
-		return err
-	}
-
-	return nil
+	SplitLine bool `json:"split_line"`
 }
 
 func loadConfig(filename string) error {
@@ -113,7 +92,7 @@ func saveConfig() error {
 }
 
 func defaultConfig(filename, home string) {
-	cfg = Cfg{
+	cfg = &Cfg{
 		ConfigFile:      filename,
 		Panels:          []*Panel{NewPanel(home), NewPanel(home)},
 		ViewInternal:    true,

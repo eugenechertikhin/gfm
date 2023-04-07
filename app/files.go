@@ -18,7 +18,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 package app
 
 import (
-	"fmt"
 	"os"
 	"sort"
 	"strings"
@@ -38,12 +37,15 @@ type File struct {
 	Selected   bool
 }
 
-func (f *File) String() string {
-	return fmt.Sprintf("name:%s", f.Name)
-}
+/*
+Check if file executable
 
+TODO: now check only presentce +x flag, need check user/group for flag
+*/
 func (f *File) Executable() bool {
-	// todo check permissions
+	if !f.IsDir && strings.Contains(f.Permission.String(), "x") {
+		return true
+	}
 	return false
 }
 

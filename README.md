@@ -1,6 +1,6 @@
 # File Manager
 
-Another one try to develope midnight commander clone in golang.
+Another one try to develop midnight commander clone in golang.
 
 ## Command line parameters
 
@@ -17,13 +17,13 @@ Program can start with default parameters or some can be specified in programm a
 
 Many changes and idea still in implementation. Nearest plan below:
 
+- history (commands, mkdir, etc)
 - check ESC key, implemnt ESC+Enter, ESC+1, ESC+2, etc
 - implement viewer and editor
 - implement top menubar
 - implement configuration screen
-- help with all shortcuts
+- help window with all shortcuts
 - copy, move, create dir 
-- rewrite 'run file' from panels and execute command line
 - menu
 
 ## Licensing

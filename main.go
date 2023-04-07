@@ -25,13 +25,15 @@ import (
 	"os"
 )
 
+const LicenseFile = "LICENSE"
+
 var (
 	ascii   = flag.Bool("a", false, "switch to use ascii border, not utf")
 	scheme  = flag.String("scheme", "colour", "colour scheme (custom, colour, bw)")
 	edit    = flag.String("e", "", "start in editor mode with filename")
 	view    = flag.String("v", "", "start in viewer mode with filename")
-	binary  = flag.String("b", "", "start in hex edit mode with filename")
-	showlic = flag.Bool("w", false, "show licence")
+	binary  = flag.String("h", "", "start in hex edit mode with filename")
+	showlic = flag.Bool("w", false, "show license")
 )
 
 func main() {
@@ -44,7 +46,7 @@ func main() {
 	}
 
 	if *showlic {
-		if file, err := os.Open(configDirectory + app.ConfigDirectory + app.LicenseFile); err != nil {
+		if file, err := os.Open(configDirectory + app.AppConfigDirectory + LicenseFile); err != nil {
 			fmt.Println("error open lincese file")
 			return
 		} else {
@@ -58,10 +60,22 @@ func main() {
 		}
 	}
 
-	app.Init(*ascii, *scheme)
-	defer app.Finish()
+	if *edit != "" {
+		// start in editor mode
+		return
+	}
 
-	if err := app.Run(configDirectory); err != nil {
+	if *view != "" {
+		// start in viewer mode
+		return
+	}
+
+	if *binary != "" {
+		// start in hex editor mode
+		return
+	}
+
+	if err := app.Run(configDirectory, *ascii, *scheme); err != nil {
 		fmt.Println(err)
 	}
 }

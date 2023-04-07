@@ -18,30 +18,33 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 package app
 
 import (
+	"bufio"
+	"fmt"
 	"github.com/gdamore/tcell/v2"
 	"os"
+	"os/exec"
 	"os/user"
+	"strings"
 )
 
 const (
-	ConfigDirectory = "/gfm/"
-	LicenseFile     = "LICENSE"
-	configFile      = "config"
-	historyFile     = "history"
+	AppConfigDirectory = "/gfm/"
+	configFile         = "config"
 )
 
 var (
-	cfg           Cfg
-	sign          string
+	cfg           *Cfg
+	homedir, sign string
 	panelCurrent  int
 	panel         *Panel
-	command       *Cmd
+	command       *Prompt
+	input         *Prompt
 	width, height int
 	incY, decH    int
 	win           *Window
 )
 
-func Run(dir string) error {
+func Run(dir string, ascii bool, scheme string) error {
 	user, err := user.Current()
 	if err != nil {
 		return err
@@ -51,14 +54,18 @@ func Run(dir string) error {
 	if user.Uid == "0" {
 		sign = " # "
 	}
+	homedir = user.HomeDir
 
-	if err := os.MkdirAll(dir+ConfigDirectory, os.ModePerm); err != nil {
+	if err := os.MkdirAll(dir+AppConfigDirectory, os.ModePerm); err != nil {
 		return err
 	}
-	if err := loadConfig(dir + ConfigDirectory + configFile); err != nil {
-		defaultConfig(dir+ConfigDirectory+configFile, user.HomeDir)
+	if err := loadConfig(dir + AppConfigDirectory + configFile); err != nil {
+		defaultConfig(dir+AppConfigDirectory+configFile, homedir)
 	}
-	loadHistory(dir + ConfigDirectory + historyFile)
+	history, err = NewHistory(dir + AppConfigDirectory + historyFile)
+
+	Init(ascii, scheme)
+	defer Finish()
 
 	panelCurrent = 0
 	panel = cfg.Panels[panelCurrent]
@@ -68,19 +75,19 @@ func Run(dir string) error {
 	if cfg.ShowMenuBar {
 		incY++
 		decH++
-
-		// show menubar (todo)
 	}
+	ShowMenubar()
+
 	if cfg.ShowKeyBar {
 		decH++
-
-		ShowKeybar(width, height-1, mainMenu, menu)
 	}
+	ShowKeybar(width, height-1, mainMenu, menu)
+
 	if cfg.ShowCommand {
 		decH++
 
-		command = NewCmd(width, height-decH+1, user.HomeDir, cmdline)
-		command.Init(panel.Path, sign)
+		command = NewPrompt(0, height-decH+1, width, user.HomeDir, cmdline)
+		command.Init(panel.Path + sign)
 	}
 
 	showPanels(incY, decH, panelCurrent)
@@ -127,7 +134,7 @@ func showPanels(incY, decH, current int) {
 	}
 }
 
-func ChangePanel() {
+func changePanel() {
 	if panel.Mode != Long {
 		panel.PrintPath(false)
 		panel.Cursor(false)
@@ -138,66 +145,97 @@ func ChangePanel() {
 		panel = cfg.Panels[panelCurrent]
 		panel.PrintPath(true)
 		panel.Cursor(true)
-		command.Init(panel.Path, sign)
+		command.Init(panel.Path + sign)
 	}
 }
 
-func ShowTerminal() {
+func showTerminal() {
 	screen.Fini()
-	command.Pause()
+	Pause()
 
 	screen, _ = tcell.NewScreen()
 	screen.Init()
-	ShowKeybar(width, height-1, mainMenu, menu)
-	command.Init(panel.Path, sign)
+
 	showPanels(incY, decH, panelCurrent)
+	command.Init(panel.Path + sign) // todo
+	ShowKeybar(width, height-1, mainMenu, menu)
+	ShowMenubar()
 }
 
-func Enter() {
-	if len(command.Prompt) > 0 {
-		// some command entered in command line
-		if newDir := command.ChangeDirectory(command.Prompt, panel.Path); newDir != "" {
-			panel.SaveCurrentDir()
-			panel.Path = newDir
-			panel.ReDrawPanel(true)
-		} else {
-			// execute entered command
-			panel.prevDir = panel.GetCursorFile().Name
-			command.RunCommand(command.Prompt, panel.Path)
-			command.Prompt = ""
-			if cfg.ConfirmPause {
-				command.Pause()
-			}
+func RunCommand(c, path string) {
+	screen.Fini()
 
-			if err := Start(); err != nil {
-				// todo return err
-			}
-			command.Init(panel.Path, sign)
-			ShowKeybar(width, height-1, mainMenu, menu)
-			showPanels(incY, decH, panelCurrent)
-		}
-	} else {
-		// get current file and run it or change to this directory
-		if panel.GetCursorFile().IsDir {
-			panel.SaveCurrentDir()
-			panel.Path = command.ChangeDirectory("cd "+panel.GetCursorFile().Name, panel.Path)
-			panel.ReDrawPanel(true)
-		} else {
-			// execute file under cursor (if executable)
-			if panel.GetCursorFile().Executable() {
-				panel.prevDir = panel.GetCursorFile().Name
-				command.RunCommand(panel.GetCursorFile().Name, panel.Path)
-				if cfg.ConfirmPause {
-					command.Pause()
-				}
-
-				if err := Start(); err != nil {
-					// todo return err
-				}
-				command.Init(panel.Path, sign)
-				ShowKeybar(width, height-1, mainMenu, menu)
-				showPanels(incY, decH, panelCurrent)
-			}
-		}
+	fmt.Printf("%s%s%s\n", path, sign, c)
+	cmd := &exec.Cmd{
+		Path:   "/bin/bash",
+		Args:   []string{"/bin/bash", "-c", c},
+		Dir:    path,
+		Stdin:  os.Stdin,
+		Stdout: os.Stdout,
+		Stderr: os.Stderr,
 	}
+	if err := cmd.Run(); err != nil {
+		fmt.Println(err)
+	}
+}
+
+/*
+Check is command need to change directory
+
+	@param path - current directory
+	@param command - command line
+
+	@return new direcory or "" if change directory is not required
+*/
+func ChangeDirectory(path, cl string) string {
+	if cl == "cd" {
+		command.Init(homedir + sign)
+		return homedir
+	}
+
+	if strings.HasPrefix(cl, "cd ") {
+		arg := strings.Split(cl, "cd ")
+
+		command.Clear()
+		cd := strings.Trim(arg[1], " ")
+		if cd == "." {
+			command.Init(path + sign)
+			return path
+		}
+		if cd == "~" || cd == "" {
+			command.Init(homedir + sign)
+			return homedir
+		}
+		if cd == ".." {
+			index := strings.LastIndex(path, "/")
+			if index == 0 || index == -1 {
+				command.Init("/" + sign)
+				return "/"
+			}
+			p := path[:index]
+			command.Init(p + sign)
+			return p
+		}
+		if cd == "/" || strings.HasPrefix(cd, "/") {
+			command.Init(cd + sign)
+			return cd
+		}
+		if path == "/" {
+			p := "/" + cd
+			command.Init(p + sign)
+			return p
+		}
+
+		p := path + "/" + cd
+		command.Init(p + sign)
+		return p
+	}
+
+	// not change command. do nothing
+	return ""
+}
+
+func Pause() {
+	fmt.Print("\nPress enter to continue")
+	bufio.NewReader(os.Stdin).ReadRune()
 }
