@@ -35,6 +35,7 @@ type File struct {
 	Size       int64
 	ModTime    time.Time
 	Selected   bool
+	IsLink     bool
 }
 
 /*
@@ -80,6 +81,7 @@ func ReadDir(path string) []File {
 				if stat, err := os.Lstat(path + "/" + s); err == nil {
 					f.IsDir = stat.IsDir()
 					f.Symbol = "~"
+					f.IsLink = true
 				}
 			}
 		}

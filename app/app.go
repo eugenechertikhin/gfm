@@ -45,16 +45,16 @@ var (
 )
 
 func Run(dir string, ascii bool, scheme string) error {
-	user, err := user.Current()
+	runUser, err := user.Current()
 	if err != nil {
 		return err
 	}
 
 	sign = " $ "
-	if user.Uid == "0" {
+	if runUser.Uid == "0" {
 		sign = " # "
 	}
-	homedir = user.HomeDir
+	homedir = runUser.HomeDir
 
 	if err := os.MkdirAll(dir+AppConfigDirectory, os.ModePerm); err != nil {
 		return err
@@ -76,17 +76,19 @@ func Run(dir string, ascii bool, scheme string) error {
 		incY++
 		decH++
 	}
-	ShowMenubar()
+	if cfg.ShowMenuBar {
+		ShowMenubar(mainMenuBar)
+	}
 
 	if cfg.ShowKeyBar {
 		decH++
 	}
-	ShowKeybar(width, height-1, mainMenu, menu)
+	ShowKeybar(width, height-1, mainMenu)
 
 	if cfg.ShowCommand {
 		decH++
 
-		command = NewPrompt(0, height-decH+1, width, user.HomeDir, cmdline)
+		command = NewPrompt(0, height-decH+1, width, runUser.HomeDir, cmdline)
 		command.Init(panel.Path + sign)
 	}
 
@@ -158,8 +160,10 @@ func showTerminal() {
 
 	showPanels(incY, decH, panelCurrent)
 	command.Init(panel.Path + sign) // todo
-	ShowKeybar(width, height-1, mainMenu, menu)
-	ShowMenubar()
+	ShowKeybar(width, height-1, mainMenu)
+	if cfg.ShowMenuBar {
+		ShowMenubar(mainMenuBar)
+	}
 }
 
 func RunCommand(c, path string) {
@@ -189,6 +193,7 @@ Check is command need to change directory
 */
 func ChangeDirectory(path, cl string) string {
 	if cl == "cd" {
+		command.Prompt = ""
 		command.Init(homedir + sign)
 		return homedir
 	}

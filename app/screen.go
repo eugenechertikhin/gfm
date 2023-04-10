@@ -25,7 +25,7 @@ var (
 	cmdline         tcell.Style
 	highlight       tcell.Style
 	title           tcell.Style
-	window          tcell.Style
+	windowStyle     tcell.Style
 	alert           tcell.Style
 	marked          tcell.Style
 	markedHighlight tcell.Style
@@ -59,7 +59,7 @@ func Init(ascii bool, scheme string) error {
 		cmdline = d.Foreground(tcell.ColorWhite).Background(tcell.ColorBlack)
 		highlight = d.Foreground(tcell.ColorBlack).Background(tcell.ColorAqua).Bold(true)
 		title = d.Foreground(tcell.ColorWhite).Background(bg)
-		window = d.Foreground(tcell.ColorWhite).Background(tcell.ColorGrey).Bold(true)
+		windowStyle = d.Foreground(tcell.ColorWhite).Background(tcell.ColorGrey).Bold(true)
 		alert = d.Foreground(tcell.ColorWhite).Background(tcell.ColorRed).Bold(true)
 		marked = d.Foreground(tcell.ColorYellow).Background(bg).Bold(true)
 		markedHighlight = d.Foreground(tcell.ColorYellow).Background(tcell.ColorAqua).Bold(true)
@@ -71,7 +71,7 @@ func Init(ascii bool, scheme string) error {
 		cmdline = d.Foreground(tcell.ColorWhite).Background(bg)
 		highlight = d.Foreground(tcell.ColorWhite).Background(tcell.ColorNavy).Bold(true)
 		title = d.Foreground(tcell.ColorWhite).Background(bg)
-		window = d.Foreground(tcell.ColorWhite).Background(bg).Bold(true)
+		windowStyle = d.Foreground(tcell.ColorWhite).Background(bg).Bold(true)
 		alert = d.Foreground(tcell.ColorWhite).Background(bg).Bold(true)
 		marked = d.Foreground(tcell.ColorYellow).Background(bg).Bold(true)
 		markedHighlight = d.Foreground(tcell.ColorYellow).Background(tcell.ColorGrey).Bold(true)

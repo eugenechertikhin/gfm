@@ -66,7 +66,13 @@ func MainKeys() map[tcell.Key]func() {
 		screen.Show()
 	}
 	k[tcell.KeyCtrlR] = func() {
-		RescanDirectory()
+		RescanDirectory(panel, true)
+
+		pc := panelCurrent + 1
+		if pc == len(cfg.Panels) {
+			pc = 0
+		}
+		RescanDirectory(cfg.Panels[pc], false)
 	}
 	k[tcell.KeyCtrlO] = func() { showTerminal() }
 	k[tcell.KeyCtrlU] = func() {
@@ -127,7 +133,7 @@ func SelectKeys() map[tcell.Key]func() {
 		keys = MainKeys()
 	}
 	k[tcell.KeyLeft] = func() {
-		win.ShowKey(win.key, window)
+		win.ShowKey(win.key, windowStyle)
 		if win.key == 0 {
 			win.key = len(win.Keys) - 1
 		} else {
@@ -136,7 +142,7 @@ func SelectKeys() map[tcell.Key]func() {
 		win.ShowKey(win.key, highlight)
 	}
 	k[tcell.KeyRight] = func() {
-		win.ShowKey(win.key, window)
+		win.ShowKey(win.key, windowStyle)
 		if win.key == len(win.Keys)-1 {
 			win.key = 0
 		} else {
@@ -145,7 +151,7 @@ func SelectKeys() map[tcell.Key]func() {
 		win.ShowKey(win.key, highlight)
 	}
 	k[tcell.KeyTab] = func() {
-		win.ShowKey(win.key, window)
+		win.ShowKey(win.key, windowStyle)
 		if win.key == len(win.Keys)-1 {
 			win.key = 0
 		} else {
@@ -165,23 +171,33 @@ func InputAndConfirmKeys() map[tcell.Key]func() {
 		keys = MainKeys()
 	}
 	k[tcell.KeyLeft] = func() {
+		win.ShowKey(win.key, windowStyle)
+		if win.key == 0 {
+			win.key = len(win.Keys) - 1
+		} else {
+			win.key--
+		}
+		win.ShowKey(win.key, highlight)
 	}
 	k[tcell.KeyRight] = func() {
-	}
-	k[tcell.KeyBackspace2] = func() { input.Backspace(highlight) }
-	k[tcell.KeyTab] = func() {
-		if win.key != 0 {
-			win.ShowKey(win.key, window)
-		}
+		win.ShowKey(win.key, windowStyle)
 		if win.key == len(win.Keys)-1 {
 			win.key = 0
 		} else {
 			win.key++
 		}
-		if win.key != 0 {
-			win.ShowKey(win.key, highlight)
-		}
+		win.ShowKey(win.key, highlight)
 	}
+	k[tcell.KeyTab] = func() {
+		win.ShowKey(win.key, windowStyle)
+		if win.key == len(win.Keys)-1 {
+			win.key = 0
+		} else {
+			win.key++
+		}
+		win.ShowKey(win.key, highlight)
+	}
+	k[tcell.KeyBackspace2] = func() { input.Backspace(highlight) }
 
 	return k
 }

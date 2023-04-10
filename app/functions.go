@@ -22,6 +22,11 @@ import (
 	"github.com/gdamore/tcell/v2"
 	"io/fs"
 	"os"
+	"os/exec"
+)
+
+var (
+	ask = true
 )
 
 func Enter() {
@@ -48,7 +53,7 @@ func Enter() {
 				os.Exit(-1)
 			}
 			command.Init(panel.Path + sign)
-			ShowKeybar(width, height-1, mainMenu, menu)
+			ShowKeybar(width, height-1, mainMenu)
 			showPanels(incY, decH, panelCurrent)
 		}
 	} else {
@@ -73,17 +78,11 @@ func Enter() {
 					os.Exit(-1)
 				}
 				command.Init(panel.Path + sign)
-				ShowKeybar(width, height-1, mainMenu, menu)
+				ShowKeybar(width, height-1, mainMenu)
 				showPanels(incY, decH, panelCurrent)
 			}
 		}
 	}
-}
-
-func Help() {
-	win = NewWindow(2, 2, width-4, height-5, nil)
-	win.Draw(window)
-	keys = SelectKeys()
 }
 
 func Menu() {
@@ -104,8 +103,10 @@ func View() {
 		}
 		showPanels(incY, decH, panelCurrent)
 		command.Init(panel.Path + sign)
-		ShowKeybar(width, height-1, mainMenu, menu)
-		ShowMenubar()
+		ShowKeybar(width, height-1, mainMenu)
+		if cfg.ShowMenuBar {
+			ShowMenubar(viewMenuBar)
+		}
 	}
 }
 
@@ -121,45 +122,146 @@ func Edit() {
 			fmt.Println(err)
 			os.Exit(-1)
 		}
-		command.Init(panel.Path + sign)
-		ShowKeybar(width, height-1, mainMenu, menu)
 		showPanels(incY, decH, panelCurrent)
+		command.Init(panel.Path + sign)
+		ShowKeybar(width, height-1, mainMenu)
+		if cfg.ShowMenuBar {
+			ShowMenubar(viewMenuBar)
+		}
 	}
 }
 
 func Copy() {
-	var from string
+	var from, fromName string
 	l := width / 3 * 2
-	from = "Copy directory '%s'"
-	from = "Copy file '%s'"
-	from = "Copy %d files"
+
+	if panel.Selected != 0 {
+		from = fmt.Sprintf("Copy %d files", panel.Selected)
+		fromName = "*"
+	} else {
+		name := panel.Files[panel.cur].Name
+		if name == ".." {
+			return
+		}
+		if len(name) > 30 {
+			name = name[:27] + "..."
+		}
+
+		from = fmt.Sprintf("Copy file '%s'", name)
+		fromName = name
+	}
+
+	pcur := panelCurrent + 1
+	if pcur == len(cfg.Panels) {
+		pcur = 0
+	}
+
 	win = NewWindow((width-l)/2, (height-8)/2, l, 8, []string{"Ok", "Cancel"})
-	win.Draw(window)
-	win.Print(2, 1, from, window)
-	win.Print(2, 2, fmt.Sprintf("%-*s", l-4, "123 "), highlight)
-	win.Print(2, 3, "to:", window)
-	win.Print(2, 4, fmt.Sprintf("%-*s", l-4, "/home "), highlight)
+	win.Draw(windowStyle)
+
+	win.Print(2, 1, from, windowStyle)
+	win.Print(2, 2, fmt.Sprintf("%-*s", l-4, fromName), highlight)
+	win.Print(2, 3, "to:", windowStyle)
+
+	input = NewPrompt((width-l)/2+2, (height-8)/2+4, l-4, "", highlight)
+	input.Prompt = cfg.Panels[pcur].Path
+	input.Init("")
 
 	keys = InputAndConfirmKeys()
 	keys[tcell.KeyEnter] = func() {
-		if win.Keys[win.key] == "Ok" {
-			// todo copy
+		if win.Keys[win.key] == "Ok" || win.Keys[win.key] == "" {
+			if err := moveFiles(input.Prompt, false); err != nil {
+				ErrorWindow("Error "+err.Error(), []string{"OK"})
+				return
+			}
+			keys = MainKeys()
+			RescanDirectory(panel, true)
+
+			pc := panelCurrent + 1
+			if pc == len(cfg.Panels) {
+				pc = 0
+			}
+			RescanDirectory(cfg.Panels[pc], false)
 		} else {
 			win.Close()
 			keys = MainKeys()
 		}
 	}
+	keys[tcell.KeyNUL] = func() {
+		if win.key == 0 {
+			input.Update(key)
+		}
+	}
 }
 
 func Move() {
+	var from, fromName string
+	l := width / 3 * 2
 
+	if panel.Selected != 0 {
+		from = fmt.Sprintf("Move %d files", panel.Selected)
+		fromName = "*"
+	} else {
+		name := panel.Files[panel.cur].Name
+		if name == ".." {
+			return
+		}
+		if len(name) > 30 {
+			name = name[:27] + "..."
+		}
+
+		from = fmt.Sprintf("Move file '%s'", name)
+		fromName = name
+	}
+
+	pcur := panelCurrent + 1
+	if pcur == len(cfg.Panels) {
+		pcur = 0
+	}
+
+	win = NewWindow((width-l)/2, (height-8)/2, l, 8, []string{"Ok", "Cancel"})
+	win.Draw(windowStyle)
+
+	win.Print(2, 1, from, windowStyle)
+	win.Print(2, 2, fmt.Sprintf("%-*s", l-4, fromName), highlight)
+	win.Print(2, 3, "to:", windowStyle)
+
+	input = NewPrompt((width-l)/2+2, (height-8)/2+4, l-4, "", highlight)
+	input.Prompt = cfg.Panels[pcur].Path
+	input.Init("")
+
+	keys = InputAndConfirmKeys()
+	keys[tcell.KeyEnter] = func() {
+		if win.Keys[win.key] == "Ok" || win.Keys[win.key] == "" {
+			if err := moveFiles(input.Prompt, true); err != nil {
+				ErrorWindow("Error "+err.Error(), []string{"OK"})
+				return
+			}
+			keys = MainKeys()
+			RescanDirectory(panel, true)
+
+			pc := panelCurrent + 1
+			if pc == len(cfg.Panels) {
+				pc = 0
+			}
+			RescanDirectory(cfg.Panels[pc], false)
+		} else {
+			win.Close()
+			keys = MainKeys()
+		}
+	}
+	keys[tcell.KeyNUL] = func() {
+		if win.key == 0 {
+			input.Update(key)
+		}
+	}
 }
 
 func MakeDir() {
 	l := width / 2
-	win = NewWindow((width-l)/2, (height-6)/2, l, 6, []string{"", "Ok", "Cancel"})
-	win.Draw(window)
-	win.Print(2, 1, "Create new directory:", window)
+	win = NewWindow((width-l)/2, (height-6)/2, l, 6, []string{"Ok", "Cancel"})
+	win.Draw(windowStyle)
+	win.Print(2, 1, "Create new directory:", windowStyle)
 
 	input = NewPrompt((width-l)/2+2, (height-6)/2+2, width/2-4, "", highlight)
 	input.Init("")
@@ -175,7 +277,7 @@ func MakeDir() {
 					ErrorWindow("Error "+err.Error(), []string{"Ok"})
 					return
 				}
-				RescanDirectory()
+				RescanDirectory(panel, true)
 			}
 			input = nil
 			win.Close()
@@ -193,7 +295,6 @@ func MakeDir() {
 }
 
 func TopMenuBar() {
-
 }
 
 func Delete() {
@@ -216,8 +317,8 @@ func Delete() {
 
 		l += len(msg) + 4
 		win = NewWindow((width-l)/2, (height-5)/2, l, 5, []string{"Yes", "No"})
-		win.Draw(window)
-		win.Print(2, 1, msg, window)
+		win.Draw(windowStyle)
+		win.Print(2, 1, msg, windowStyle)
 
 		keys = SelectKeys()
 		keys[tcell.KeyEnter] = func() {
@@ -225,8 +326,9 @@ func Delete() {
 				ask = true
 				if err := deleteFiles(); err != nil {
 					ErrorWindow("Error "+err.Error(), []string{"OK"})
+					return
 				}
-				RescanDirectory()
+				RescanDirectory(panel, true)
 			}
 			win.Close()
 			keys = MainKeys()
@@ -236,24 +338,62 @@ func Delete() {
 		if err := deleteFiles(); err != nil {
 			ErrorWindow("Error "+err.Error(), []string{"OK"})
 		}
-		RescanDirectory()
+		RescanDirectory(panel, true)
+	}
+	ask = true
+}
+
+func moveFiles(to string, move bool) error {
+	// todo show process of coping
+	win.Close()
+
+	var p string
+	if panel.Path == "/" {
+		p = "/"
+	} else {
+		p = panel.Path + "/"
+	}
+
+	if panel.Selected != 0 {
+		for _, f := range panel.Files {
+			if f.Selected {
+				if err := moveFile(p+f.Name, to, move); err != nil {
+					return err
+				}
+			}
+		}
+
+		return nil
+	} else {
+		return moveFile(p+panel.Files[panel.cur].Name, to, move)
 	}
 }
 
-var ask bool = true
+func moveFile(from, to string, move bool) error {
+	var cpCmd *exec.Cmd
+
+	if move {
+		cpCmd = exec.Command("mv", "-f", from, to)
+	} else {
+		cpCmd = exec.Command("cp", "-rf", from, to)
+	}
+
+	return cpCmd.Run()
+}
 
 func deleteFiles() error {
 	// todo show process of deletion?
 	win.Close()
+
+	var p string
+	if panel.Path == "/" {
+		p = "/"
+	} else {
+		p = panel.Path + "/"
+	}
+
 	if panel.Selected != 0 {
 		// many files are selected
-		var p string
-		if panel.Path == "/" {
-			p = "/"
-		} else {
-			p = panel.Path + "/"
-		}
-
 		for _, f := range panel.Files {
 			if f.Selected {
 				if err := removeFile(p, f); err != nil {
@@ -264,13 +404,6 @@ func deleteFiles() error {
 
 	} else {
 		// only one file or directory should be deleted
-		var p string
-		if panel.Path == "/" {
-			p = "/"
-		} else {
-			p = panel.Path + "/"
-		}
-
 		err := removeFile(p, panel.Files[panel.cur])
 
 		return err
@@ -281,10 +414,15 @@ func deleteFiles() error {
 }
 
 func removeFile(path string, f File) error {
+	// check is it link. if yes just remove link without traverse inside
+	if f.IsLink {
+		return os.Remove(path + "/" + f.Name)
+	}
 	if f.IsDir {
 		// check is empty?
 		d := ReadDir(path + "/" + f.Name)
 		if ask && len(d) > 1 {
+			// todo ask confirmation for deletion. Yes, No, All, Cancel
 			//ask = false // if == all
 		}
 		for _, v := range d {
@@ -309,8 +447,8 @@ func removeFile(path string, f File) error {
 func Exit() {
 	if cfg.ConfirmExit {
 		win = NewWindow((width-30)/2, (height-5)/2, 30, 5, []string{"Yes", "No"})
-		win.Draw(window)
-		win.Print(2, 1, "Are you sure to leave gfm?", window)
+		win.Draw(windowStyle)
+		win.Print(2, 1, "Are you sure to leave gfm?", windowStyle)
 
 		keys = SelectKeys()
 		keys[tcell.KeyEnter] = func() {
@@ -328,15 +466,17 @@ func Exit() {
 	}
 }
 
-func RescanDirectory() {
-	panel.Files = GetDirectory(panel.Path)
-	panel.Selected = 0
-	panel.SelectedSize = 0
-	panel.ShowFiles(0)
-	if panel.cur >= len(panel.Files) {
-		panel.cur = len(panel.Files) - 1
+func RescanDirectory(p *Panel, active bool) {
+	p.Files = GetDirectory(p.Path)
+	p.Selected = 0
+	p.SelectedSize = 0
+	p.ShowFiles(0)
+	if p.cur >= len(p.Files) {
+		p.cur = len(p.Files) - 1
 	}
-	panel.Cursor(true)
+	if active {
+		p.Cursor(true)
+	}
 }
 
 func ErrorWindow(message string, choice []string) {

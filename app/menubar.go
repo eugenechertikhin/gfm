@@ -17,8 +17,25 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 package app
 
-func ShowMenubar() {
-	if cfg.ShowMenuBar {
-		// todo
+import "fmt"
+
+var (
+	mainMenuBar = []string{"Left panel", "File", "Command", "Right panel"}
+	viewMenuBar = []string{}
+	editMenuBar = []string{}
+
+	menuBar *Window
+)
+
+func ShowMenubar(items []string) {
+	menuBar = NewWindow(0, 0, width, 1, nil)
+	menuBar.Clear(menu)
+
+	pos := 5
+	for _, v := range items {
+		s := fmt.Sprintf("%-*s", 20, v)
+		pos = menuBar.Print(pos, 0, s, menu)
+		pos += 5
 	}
+
 }
